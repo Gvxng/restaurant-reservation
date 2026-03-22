@@ -1,0 +1,347 @@
+@startuml
+title Restaurant Table Reservation System — DDD Domain Model\n<size:12>Team: [Yanis Achamou and Nathan Toko]</size>
+
+' ============================================================
+' GLOBAL STYLING
+' ============================================================
+skinparam linetype ortho
+skinparam nodesep 50
+skinparam ranksep 60
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #555555
+    FontStyle bold
+    FontSize 13
+}
+
+skinparam class {
+    BorderColor #333333
+    FontSize 11
+    AttributeFontSize 10
+}
+
+' ============================================================
+' COLOR DEFINITIONS BY CONTEXT
+' ============================================================
+' Core  → Purple/Violet  (#E8D5F5 fill, #6A1FA0 border)
+' Menu  → Blue           (#D5E8F5 fill, #1F5FA0 border)
+' Floor → Green          (#D5F5E3 fill, #1FA05F border)
+' Loyalty → Orange       (#FDE9CC fill, #C06010 border)
+' Value Objects → Salmon (#F5D5CC fill, #A03020 border)
+' Identifiers → Light Yellow (#FFFACC fill)
+
+' ============================================================
+' PACKAGE: CORE — TABLE RESERVATION MANAGEMENT
+' ============================================================
+package "Table Reservation Management\n<<Core Subdomain — Orchestrator>>" #E8D5F5 {
+
+    ' --- Aggregate 1: TableBooking ---
+    class TableBooking <<Aggregate Root>>\n<<Entity>> #E8D5F5 {
+        .. Identity ..
+        bookingId : Long
+        .. References ..
+        customerId : Long
+        tableId : Long
+        preOrderId : Long [0..1]
+        .. Attributes ..
+        reservationDate : LocalDate
+        partySize : Integer
+        status : BookingStatus
+        loyaltyPointsEarned : Integer
+        createdAt : LocalDateTime
+    }
+
+    class BookingIdentifier <<Value Object>> #F5D5CC {
+        bookingId : Long
+    }
+
+    ' --- Aggregate 2: PreOrder ---
+    class PreOrder <<Aggregate Root>>\n<<Entity>> #E8D5F5 {
+        .. Identity ..
+        preOrderId : Long
+        .. References ..
+        bookingId : Long
+        .. Attributes ..
+        totalAmount : Money
+        status : PreOrderStatus
+        submittedAt : LocalDateTime
+    }
+
+    class OrderLineItem <<Entity>> #E8D5F5 {
+        lineItemId : Long
+        menuItemId : Long
+        quantity : Integer
+        unitPrice : Money
+    }
+
+    class PreOrderIdentifier <<Value Object>> #F5D5CC {
+        preOrderId : Long
+    }
+
+    class BookingStatus <<Value Object>> #F5D5CC {
+        value : PENDING | CONFIRMED
+              | SEATED | COMPLETED
+              | CANCELLED
+    }
+
+    class PreOrderStatus <<Value Object>> #F5D5CC {
+        value : DRAFT | SUBMITTED
+              | CONFIRMED | PREPARED
+    }
+
+    class TimeSlot <<Value Object>> #F5D5CC {
+        startTime : LocalTime
+        endTime : LocalTime
+    }
+
+    class Money <<Value Object>> #F5D5CC {
+        amount : BigDecimal
+        currency : String
+    }
+
+    ' --- Internal Relationships ---
+    TableBooking "1" *-- "1" BookingStatus       : status
+    TableBooking "1" *-- "1" TimeSlot            : timeSlot
+    TableBooking "1" *-- "0..1" PreOrderIdentifier : preOrderId
+
+    PreOrder "1" *-- "1..*" OrderLineItem        : items
+    PreOrder "1" *-- "1" PreOrderStatus           : status
+    PreOrder "1" *-- "1" Money                   : totalAmount
+    OrderLineItem "1" *-- "1" Money              : unitPrice
+    TableBooking "1" *-- "1" BookingIdentifier   : bookingId
+}
+
+' ============================================================
+' PACKAGE: SUPPORTING — MENU MANAGEMENT
+' ============================================================
+package "Menu Management\n<<Supporting Subdomain>>" #D5E8F5 {
+
+    class MenuItem <<Aggregate Root>>\n<<Entity>> #D5E8F5 {
+        .. Identity ..
+        menuItemId : Long
+        .. Attributes ..
+        name : String
+        description : String
+        price : Money
+        category : MenuCategory
+        isAvailable : Boolean
+        dietaryTags : List<DietaryTag>
+    }
+
+    class Menu <<Entity>> #D5E8F5 {
+        menuId : Long
+        effectiveDate : LocalDate
+        items : List<Long>
+    }
+
+    class MenuItemIdentifier <<Value Object>> #F5D5CC {
+        menuItemId : Long
+    }
+
+    class MenuCategory <<Value Object>> #F5D5CC {
+        value : APPETIZER | MAIN
+              | DESSERT | BEVERAGE
+    }
+
+    class DietaryTag <<Value Object>> #F5D5CC {
+        value : VEGAN | VEGETARIAN
+              | GLUTEN_FREE | NUT_FREE
+    }
+
+    class MoneyMenu <<Value Object>> #F5D5CC {
+        amount : BigDecimal
+        currency : String
+    }
+
+    ' --- Internal Relationships ---
+    Menu "1" o-- "1..*" MenuItem           : contains
+    MenuItem "1" *-- "1" MenuCategory      : category
+    MenuItem "1" *-- "0..*" DietaryTag     : dietaryTags
+    MenuItem "1" *-- "1" MoneyMenu         : price
+    MenuItem "1" *-- "1" MenuItemIdentifier : menuItemId
+}
+
+' ============================================================
+' PACKAGE: SUPPORTING — FLOOR LAYOUT
+' ============================================================
+package "Floor Layout\n<<Supporting Subdomain>>" #D5F5E3 {
+
+    class DiningTable <<Aggregate Root>>\n<<Entity>> #D5F5E3 {
+        .. Identity ..
+        tableId : Long
+        .. Attributes ..
+        tableNumber : String
+        seatingCapacity : Integer
+        tableType : TableType
+        status : TableStatus
+        location : TableLocation
+    }
+
+    class FloorSection <<Entity>> #D5F5E3 {
+        sectionId : Long
+        sectionName : String
+        tables : List<Long>
+    }
+
+    class TableIdentifier <<Value Object>> #F5D5CC {
+        tableId : Long
+    }
+
+    class TableLocation <<Value Object>> #F5D5CC {
+        sectionId : Long
+        positionX : Integer
+        positionY : Integer
+    }
+
+    class TableType <<Value Object>> #F5D5CC {
+        value : INDOOR | OUTDOOR
+              | BOOTH | BAR
+    }
+
+    class TableStatus <<Value Object>> #F5D5CC {
+        value : AVAILABLE | RESERVED
+              | OCCUPIED | MAINTENANCE
+    }
+
+    ' --- Internal Relationships ---
+    FloorSection "1" o-- "1..*" DiningTable    : contains
+    DiningTable "1" *-- "1" TableLocation      : location
+    DiningTable "1" *-- "1" TableType          : tableType
+    DiningTable "1" *-- "1" TableStatus        : status
+    DiningTable "1" *-- "1" TableIdentifier    : tableId
+}
+
+' ============================================================
+' PACKAGE: SUPPORTING — CUSTOMER LOYALTY
+' ============================================================
+package "Customer Loyalty\n<<Supporting Subdomain>>" #FDE9CC {
+
+    class LoyaltyAccount <<Aggregate Root>>\n<<Entity>> #FDE9CC {
+        .. Identity ..
+        accountId : Long
+        .. References ..
+        customerId : Long
+        .. Attributes ..
+        pointsBalance : Integer
+        tier : LoyaltyTier
+        enrollmentDate : LocalDate
+    }
+
+    class PointsTransaction <<Entity>> #FDE9CC {
+        transactionId : Long
+        accountId : Long
+        points : Integer
+        transactionType : TransactionType
+        referenceId : Long
+        transactionDate : LocalDateTime
+    }
+
+    class LoyaltyAccountIdentifier <<Value Object>> #F5D5CC {
+        accountId : Long
+    }
+
+    class LoyaltyTier <<Value Object>> #F5D5CC {
+        value : BRONZE | SILVER
+              | GOLD | PLATINUM
+    }
+
+    class TransactionType <<Value Object>> #F5D5CC {
+        value : EARNED | REDEEMED
+              | EXPIRED | ADJUSTED
+    }
+
+    class CustomerIdentifier <<Value Object>> #FFFACC {
+        customerId : Long
+    }
+
+    ' --- Internal Relationships ---
+    LoyaltyAccount "1" *-- "0..*" PointsTransaction : transactions
+    LoyaltyAccount "1" *-- "1" LoyaltyTier          : tier
+    LoyaltyAccount "1" *-- "1" LoyaltyAccountIdentifier : accountId
+    PointsTransaction "1" *-- "1" TransactionType   : transactionType
+    LoyaltyAccount "1" *-- "1" CustomerIdentifier   : customerId
+}
+
+' ============================================================
+' CROSS-CONTEXT REFERENCES (by ID — dashed arrows)
+' ============================================================
+TableBooking ..> MenuItemIdentifier    : "references menuItemId\n(via OrderLineItem)"
+TableBooking ..> TableIdentifier       : "references tableId\n(reserves table)"
+TableBooking ..> CustomerIdentifier    : "references customerId"
+LoyaltyAccount ..> BookingIdentifier   : "references bookingId\n(PointsTransaction.referenceId)"
+
+' ============================================================
+' INVARIANT NOTES
+' ============================================================
+note as CoreInvariants #FAEAFB
+  <b>TableReservation Management — Invariants</b>
+  1. A table cannot be double-booked for the
+     same date and overlapping TimeSlot.
+  2. partySize must not exceed table's
+     seatingCapacity.
+  3. PreOrder.totalAmount must equal sum
+     of all OrderLineItem amounts.
+  4. A booking cannot be CONFIRMED without
+     a valid, available table assignment.
+  5. A PreOrder cannot be submitted for a
+     CANCELLED or COMPLETED booking.
+end note
+
+note as MenuInvariants #DAF0FB
+  <b>Menu Management — Invariants</b>
+  1. MenuItem.price must be > 0.
+  2. A MenuItem marked isAvailable=false
+     cannot appear in an active PreOrder.
+end note
+
+note as FloorInvariants #D8F5E2
+  <b>Floor Layout — Invariants</b>
+  1. seatingCapacity must be a positive
+     integer (minimum 1).
+  2. A DiningTable with status=MAINTENANCE
+     cannot be reserved.
+end note
+
+note as LoyaltyInvariants #FEF0D8
+  <b>Customer Loyalty — Invariants</b>
+  1. pointsBalance cannot go below zero.
+  2. A customer can have only one active
+     LoyaltyAccount.
+  3. Points can only be redeemed if
+     sufficient balance exists.
+end note
+
+' ============================================================
+' ORCHESTRATION NOTE
+' ============================================================
+note as OrchestratorNote #E8D5F5
+  <b>Core Orchestration:</b>
+  TableReservation Management coordinates:
+  • Menu Management  → validates MenuItems,
+    retrieves prices for PreOrder
+  • Floor Layout     → checks capacity &
+    status; sets table to RESERVED
+  • Customer Loyalty → credits points on
+    COMPLETED booking; reads tier for perks
+end note
+
+' ============================================================
+' LEGEND
+' ============================================================
+legend right
+  |= Symbol |= Meaning |
+  | <back:#E8D5F5>Purple</back> | Core Subdomain |
+  | <back:#D5E8F5>Blue</back> | Supporting: Menu Management |
+  | <back:#D5F5E3>Green</back> | Supporting: Floor Layout |
+  | <back:#FDE9CC>Orange</back> | Supporting: Customer Loyalty |
+  | <back:#F5D5CC>Salmon</back> | Value Object |
+  | <back:#FFFACC>Yellow</back> | Cross-context Identifier |
+  | --> | Composition |
+  | o--> | Aggregation |
+  | ..> | Cross-context ID reference |
+end legend
+@enduml
