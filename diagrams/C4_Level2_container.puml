@@ -1,0 +1,22 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Level 2 - Container Diagram\nRestaurant Table Reservation System
+
+Person(customer, "Restaurant Customer", "Books tables and submits pre-orders through an HTTP client.")
+Person(staff, "Restaurant Staff", "Uses an HTTP client to manage restaurant operations.")
+System_Ext(db_admin, "phpMyAdmin", "Optional database administration tool bundled with docker-compose.")
+
+System_Boundary(reservation_system, "Restaurant Table Reservation System") {
+    Container(api, "Reservation API", "Java 17, Spring Boot 4, Spring Web, Spring Data JPA, HATEOAS", "Exposes REST endpoints for bookings, pre-orders, menu items, dining tables, and loyalty accounts. Enforces domain rules and orchestrates data access.")
+    ContainerDb(mysql, "Restaurant Database", "MySQL 8", "Stores bookings, pre-orders, menu items, dining tables, floor sections, loyalty accounts, and points transactions.")
+}
+
+Rel(customer, api, "Uses reservation and pre-order endpoints", "HTTPS/JSON")
+Rel(staff, api, "Uses management endpoints", "HTTPS/JSON")
+Rel(api, mysql, "Reads and writes reservation data", "JDBC")
+Rel(db_admin, mysql, "Inspects and administers data", "MySQL protocol")
+
+@enduml

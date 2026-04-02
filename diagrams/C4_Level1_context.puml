@@ -1,0 +1,16 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Level 1 - System Context Diagram\nRestaurant Table Reservation System
+
+Person(customer, "Restaurant Customer", "Books a table, reviews reservation details, and can pre-order menu items.")
+Person(staff, "Restaurant Staff", "Manages reservations, table availability, menu items, and loyalty accounts.")
+
+System(reservation_system, "Restaurant Table Reservation System", "Spring Boot REST service for managing bookings, pre-orders, menu items, dining tables, and loyalty accounts.")
+
+Rel(customer, reservation_system, "Creates and views reservations and pre-orders", "HTTPS/JSON")
+Rel(staff, reservation_system, "Maintains tables, menu items, loyalty accounts, and bookings", "HTTPS/JSON")
+
+@enduml
