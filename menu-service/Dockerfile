@@ -1,20 +1,20 @@
-FROM eclipse-temurin:17-jdk AS builder
-WORKDIR /workspace
+# syntax=docker/dockerfile:1.7
+FROM gradle:9.3.1-jdk17-alpine AS build
 
-COPY gradlew gradlew
-COPY gradle gradle
-COPY settings.gradle build.gradle ./
-COPY reservation-service reservation-service
-COPY menu-service menu-service
-COPY loyalty-service loyalty-service
-COPY api-gateway-service api-gateway-service
-
-RUN chmod +x gradlew && ./gradlew :menu-service:bootJar --no-daemon
-
-FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-COPY --from=builder /workspace/menu-service/build/libs/*.jar app.jar
+COPY settings.gradle ./
+COPY build.gradle ./
+COPY src ./src
+
+RUN --mount=type=cache,id=gradle-menu,target=/home/gradle/.gradle,sharing=locked \
+    sh -c 'for i in 1 2 3; do gradle bootJar --no-daemon -x test && exit 0; echo "Gradle build failed, retrying in 10s..."; sleep 10; done; exit 1'
+
+FROM eclipse-temurin:17-jre-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/build/libs/*.jar app.jar
 
 EXPOSE 8082
 
