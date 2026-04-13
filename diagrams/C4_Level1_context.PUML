@@ -1,0 +1,24 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+' uncomment the following line and comment the first to use locally
+' !include C4_Context.puml
+LAYOUT_WITH_LEGEND()
+
+title System Context Diagram for Restaurant Reservation Microservices Platform
+
+Person(customer, "Restaurant Customer", "Uses the public API to browse menu items, book tables, and manage pre-orders.")
+Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, dining tables, menu items, and loyalty accounts.")
+
+System(restaurant_platform, "Restaurant Reservation Microservices Platform", "Spring Boot microservices landscape composed of an API Gateway and three lower-level services.")
+
+System_Ext(mysql_admin, "phpMyAdmin", "Database administration tool for the MySQL-backed reservation and loyalty databases.")
+System_Ext(adminer, "Adminer", "Database administration tool for the Postgres-backed menu database.")
+
+Rel(customer, restaurant_platform, "Uses", "HTTPS/JSON")
+Rel(staff, restaurant_platform, "Uses", "HTTPS/JSON")
+Rel(staff, mysql_admin, "Uses", "HTTPS")
+Rel(staff, adminer, "Uses", "HTTPS")
+Rel(mysql_admin, restaurant_platform, "Administers stored MySQL data for", "SQL over Docker network")
+Rel(adminer, restaurant_platform, "Administers stored Postgres data for", "SQL over Docker network")
+
+@enduml

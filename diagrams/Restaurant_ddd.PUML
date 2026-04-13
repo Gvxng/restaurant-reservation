@@ -1,0 +1,209 @@
+@startuml
+title Restaurant Reservation System - Updated DDD Domain Model
+
+skinparam linetype ortho
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+skinparam package {
+    BackgroundColor #FAFAFA
+    BorderColor #555555
+    FontStyle bold
+    FontSize 13
+}
+
+skinparam class {
+    BorderColor #333333
+    FontSize 11
+    AttributeFontSize 10
+}
+
+package "Reservation Management Bounded Context\n<<Core Subdomain>>" #E8D5F5 {
+    class TableBooking <<Aggregate Root>>\n<<Entity>> #E8D5F5 {
+        bookingId : Long
+        customerId : Long
+        tableId : Long
+        preOrderId : Long [0..1]
+        reservationDate : LocalDate
+        timeSlotStart : LocalTime
+        timeSlotEnd : LocalTime
+        partySize : Integer
+        status : BookingStatus
+        loyaltyPointsEarned : Integer
+        createdAt : LocalDateTime
+    }
+
+    class PreOrder <<Aggregate Root>>\n<<Entity>> #E8D5F5 {
+        preOrderId : Long
+        bookingId : Long
+        totalAmount : Money
+        currency : String
+        status : PreOrderStatus
+        submittedAt : LocalDateTime
+    }
+
+    class OrderLineItem <<Entity>> #E8D5F5 {
+        lineItemId : Long
+        menuItemId : Long
+        quantity : Integer
+        unitAmount : Money
+    }
+
+    class DiningTable <<Entity>> #E8D5F5 {
+        tableId : Long
+        tableNumber : String
+        seatingCapacity : Integer
+        tableType : TableType
+        status : TableStatus
+        sectionId : Long
+        positionX : Integer
+        positionY : Integer
+    }
+
+    class FloorSection <<Entity>> #E8D5F5 {
+        sectionId : Long
+        sectionName : String
+    }
+
+    class BookingStatus <<Value Object>> #F5D5CC {
+        value : PENDING | CONFIRMED | COMPLETED | CANCELLED
+    }
+
+    class PreOrderStatus <<Value Object>> #F5D5CC {
+        value : DRAFT | CONFIRMED
+    }
+
+    class TableType <<Value Object>> #F5D5CC {
+        value : INDOOR | OUTDOOR | BOOTH | BAR
+    }
+
+    class TableStatus <<Value Object>> #F5D5CC {
+        value : AVAILABLE | RESERVED | OCCUPIED | MAINTENANCE
+    }
+
+    class Money <<Value Object>> #F5D5CC {
+        amount : BigDecimal
+        currency : String
+    }
+
+    FloorSection "1" o-- "0..*" DiningTable : contains
+    TableBooking "1" *-- "0..1" PreOrder : optional pre-order
+    PreOrder "1" *-- "0..*" OrderLineItem : items
+    TableBooking ..> DiningTable : reserves by tableId
+    PreOrder ..> TableBooking : belongs to bookingId
+    OrderLineItem "1" *-- "1" Money : unitAmount
+    PreOrder "1" *-- "1" Money : totalAmount
+}
+
+package "Menu Management Bounded Context\n<<Supporting Subdomain>>" #D5E8F5 {
+    class Menu <<Aggregate Root>>\n<<Entity>> #D5E8F5 {
+        menuId : Long
+        name : String
+        effectiveDate : LocalDate
+    }
+
+    class MenuItem <<Entity>> #D5E8F5 {
+        menuItemId : Long
+        menuId : Long
+        name : String
+        description : String
+        amount : Money
+        category : MenuCategory
+        isAvailable : Boolean
+        dietaryTags : String
+    }
+
+    class MenuCategory <<Value Object>> #F5D5CC {
+        value : APPETIZER | MAIN | DESSERT | BEVERAGE
+    }
+
+    class MenuItemIdentifier <<Value Object>> #FFFACC {
+        menuItemId : Long
+    }
+
+    Menu "1" o-- "0..*" MenuItem : contains
+    MenuItem "1" *-- "1" Money : price
+}
+
+package "Loyalty Management Bounded Context\n<<Supporting Subdomain>>" #FDE9CC {
+    class LoyaltyAccount <<Aggregate Root>>\n<<Entity>> #FDE9CC {
+        accountId : Long
+        customerId : Long
+        pointsBalance : Integer
+        tier : LoyaltyTier
+        enrollmentDate : LocalDate
+    }
+
+    class PointsTransaction <<Entity>> #FDE9CC {
+        transactionId : Long
+        accountId : Long
+        points : Integer
+        transactionType : TransactionType
+        referenceId : Long
+        transactionDate : LocalDateTime
+    }
+
+    class LoyaltyTier <<Value Object>> #F5D5CC {
+        value : BRONZE | SILVER | GOLD | PLATINUM
+    }
+
+    class TransactionType <<Value Object>> #F5D5CC {
+        value : EARNED | REDEEMED
+    }
+
+    class CustomerReference <<Value Object>> #FFFACC {
+        customerId : Long
+    }
+
+    LoyaltyAccount "1" *-- "0..*" PointsTransaction : transactions
+    LoyaltyAccount "1" *-- "1" CustomerReference : customerId
+}
+
+OrderLineItem ..> MenuItemIdentifier : references menu item by id
+TableBooking ..> CustomerReference : references customer by id
+PointsTransaction ..> TableBooking : references completed bookingId
+
+note as ReservationRules #FAEAFB
+  <b>Reservation Management Invariants</b>
+  1. A dining table cannot be double-booked
+     for the same date and overlapping time slot.
+  2. partySize must not exceed seatingCapacity.
+  3. A table in MAINTENANCE cannot be reserved.
+  4. A pre-order cannot be modified for a
+     COMPLETED or CANCELLED booking.
+end note
+
+note as MenuRules #DAF0FB
+  <b>Menu Management Invariants</b>
+  1. Menu item price must be greater than 0.
+  2. Each MenuItem belongs to exactly one Menu.
+end note
+
+note as LoyaltyRules #FEF0D8
+  <b>Loyalty Management Invariants</b>
+  1. A customer can have only one LoyaltyAccount.
+  2. pointsBalance cannot be negative.
+  3. Tier upgrades are driven by points balance.
+end note
+
+note as MilestoneOneNote #FFFACC
+  <b>Milestone 1 Boundary</b>
+  Bounded contexts remain autonomous.
+  Cross-context relationships are by identifier only.
+  No aggregate in one bounded context embeds data
+  owned by another microservice.
+end note
+
+legend right
+  |= Color |= Meaning |
+  | <back:#E8D5F5>Purple</back> | Reservation Management bounded context |
+  | <back:#D5E8F5>Blue</back> | Menu Management bounded context |
+  | <back:#FDE9CC>Orange</back> | Loyalty Management bounded context |
+  | <back:#F5D5CC>Salmon</back> | Value object |
+  | <back:#FFFACC>Yellow</back> | External or cross-context identifier |
+end legend
+
+@enduml

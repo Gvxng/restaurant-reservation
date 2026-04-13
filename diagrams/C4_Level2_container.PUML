@@ -1,0 +1,45 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+' uncomment the following line and comment the first to use locally
+' !include C4_Container.puml
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram for Restaurant Reservation Microservices Platform
+
+Person(customer, "Restaurant Customer", "Uses the public API to manage reservations and pre-orders.")
+Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, tables, menu items, and loyalty accounts.")
+
+System_Ext(mysql_admin, "phpMyAdmin", "Administers the MySQL databases used by the reservation and loyalty services.")
+System_Ext(adminer, "Adminer", "Administers the Postgres database used by the menu service.")
+
+System_Boundary(c1, "Restaurant Reservation Microservices Platform") {
+    Container(api_gateway, "API Gateway Service", "Java 17, Spring Boot, RestTemplate, Spring HATEOAS", "Single public entry point. Exposes HATEOAS-enabled endpoints and forwards requests to the internal services.")
+
+    Container(reservation_service, "Reservation Service", "Java 17, Spring Boot", "Owns bookings, pre-orders, dining tables, floor sections, and reservation business rules.")
+    ContainerDb(reservation_db, "Reservation DB", "MySQL 8", "Stores bookings, pre-orders, order line items, dining tables, and floor sections.")
+
+    Container(menu_service, "Menu Service", "Java 17, Spring Boot", "Owns menu items and menus.")
+    ContainerDb(menu_db, "Menu DB", "PostgreSQL 16", "Stores menus and menu items.")
+
+    Container(loyalty_service, "Loyalty Service", "Java 17, Spring Boot", "Owns loyalty accounts, tiers, and points transactions.")
+    ContainerDb(loyalty_db, "Loyalty DB", "MySQL 8", "Stores loyalty accounts and points transactions.")
+}
+
+Rel(customer, api_gateway, "Uses", "JSON/REST/HTTPS")
+Rel(staff, api_gateway, "Uses", "JSON/REST/HTTPS")
+
+Rel(api_gateway, reservation_service, "Forwards reservation, pre-order, and dining-table requests", "HTTP/JSON")
+Rel(api_gateway, menu_service, "Forwards menu item requests", "HTTP/JSON")
+Rel(api_gateway, loyalty_service, "Forwards loyalty account requests", "HTTP/JSON")
+
+Rel_D(reservation_service, reservation_db, "Reads from and writes to", "JDBC/SQL")
+Rel_D(menu_service, menu_db, "Reads from and writes to", "JDBC/SQL")
+Rel_D(loyalty_service, loyalty_db, "Reads from and writes to", "JDBC/SQL")
+
+Rel(staff, mysql_admin, "Uses", "HTTPS")
+Rel(staff, adminer, "Uses", "HTTPS")
+Rel(mysql_admin, reservation_db, "Reads from and writes to", "MySQL/TCP")
+Rel(mysql_admin, loyalty_db, "Reads from and writes to", "MySQL/TCP")
+Rel(adminer, menu_db, "Reads from and writes to", "PostgreSQL/TCP")
+
+@enduml
