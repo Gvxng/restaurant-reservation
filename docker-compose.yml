@@ -62,6 +62,7 @@ services:
     container_name: reservation-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: reservation_db
     ports:
       - "3307:3306"
@@ -97,6 +98,7 @@ services:
     container_name: loyalty-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: loyalty_db
     ports:
       - "3308:3306"
