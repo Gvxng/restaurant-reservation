@@ -5,9 +5,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      RESERVATION_SERVICE_BASE_URL: http://reservation-service:8081
-      MENU_SERVICE_BASE_URL: http://menu-service:8082
-      LOYALTY_SERVICE_BASE_URL: http://loyalty-service:8083
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       reservation-service:
         condition: service_started
@@ -20,9 +18,7 @@ services:
     build: ./reservation-service
     container_name: restaurant-reservation-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://reservation-db:3306/reservation_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       reservation-db:
         condition: service_healthy
@@ -31,9 +27,7 @@ services:
     build: ./menu-service
     container_name: restaurant-menu-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://menu-db:5432/menu_db
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       menu-db:
         condition: service_healthy
@@ -42,9 +36,7 @@ services:
     build: ./loyalty-service
     container_name: restaurant-loyalty-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://loyalty-db:3306/loyalty_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_PROFILES_ACTIVE: docker
     depends_on:
       loyalty-db:
         condition: service_healthy
