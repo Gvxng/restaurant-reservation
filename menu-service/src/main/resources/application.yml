@@ -1,6 +1,53 @@
+# This is a Spring Boot configuration file in YAML format.
+# It defines settings for the menu-service application.
+
+# Server configuration
 server:
+  port: 8082  # The port on which the application will run.
   error:
     include-message: always
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.example.restaurantreservation: TRACE
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Spring configuration for "default" profile
+spring:
+  application:
+    name: menu-service
+  config:
+    activate:
+      on-profile: default
+  datasource:
+    url: jdbc:h2:mem:menu-service-db;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        auto-quote-keyword: true
+        format_sql: true
+    defer-datasource-initialization: true
+  sql:
+    init:
+      platform: h2
+      mode: always
+      data-locations: classpath:data.sql
+  h2:
+    console:
+      enabled: true
+      path: /h2
+      settings:
+        web-allow-others: true
 
 management:
   endpoints:
@@ -11,37 +58,11 @@ management:
     health:
       show-details: always
 
+---
+# Spring configuration for "docker" profile
 spring:
   application:
     name: menu-service
-
----
-spring:
-  config:
-    activate:
-      on-profile: default
-  datasource:
-    url: jdbc:postgresql://localhost:5433/menu_db
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create
-    defer-datasource-initialization: true
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-  sql:
-    init:
-      mode: always
-
-server:
-  port: 8082
-
----
-spring:
   config:
     activate:
       on-profile: docker
@@ -53,20 +74,31 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
-    defer-datasource-initialization: true
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+    defer-datasource-initialization: true
   sql:
     init:
+      platform: postgresql
       mode: always
+      data-locations: classpath:data.sql
 
-server:
-  port: 8082
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
 
 ---
+# Spring configuration for "testing" profile
 spring:
+  application:
+    name: menu-service
   config:
     activate:
       on-profile: testing
@@ -76,13 +108,32 @@ spring:
     username: sa
     password:
   jpa:
+    show-sql: true
     hibernate:
       ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        auto-quote-keyword: true
+        format_sql: true
     defer-datasource-initialization: true
-    show-sql: false
   sql:
     init:
-      mode: always
+      platform: h2
+      mode: embedded
+      data-locations: classpath:data.sql
+  h2:
+    console:
+      enabled: true
 
 server:
   port: 0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

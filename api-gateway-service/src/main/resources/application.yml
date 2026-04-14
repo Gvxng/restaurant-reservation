@@ -1,6 +1,34 @@
+# This is a Spring Boot configuration file in YAML format.
+# It defines settings for the api-gateway-service application.
+
+# Server configuration
 server:
+  port: 8080  # The port on which the application will run.
   error:
     include-message: always
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.example.restaurantreservation: TRACE
+
+# Spring configuration for "default" profile
+spring:
+  application:
+    name: api-gateway-service
+  config:
+    activate:
+      on-profile: default
+
+microservices:
+  reservation:
+    base-url: http://localhost:8081
+  menu:
+    base-url: http://localhost:8082
+  loyalty:
+    base-url: http://localhost:8083
 
 management:
   endpoints:
@@ -11,35 +39,14 @@ management:
     health:
       show-details: always
 
+---
+# Spring configuration for "docker" profile
 spring:
   application:
     name: api-gateway-service
-
----
-spring:
-  config:
-    activate:
-      on-profile: default
-
-server:
-  port: 8080
-
-microservices:
-  reservation:
-    base-url: http://localhost:8081
-  menu:
-    base-url: http://localhost:8082
-  loyalty:
-    base-url: http://localhost:8083
-
----
-spring:
   config:
     activate:
       on-profile: docker
-
-server:
-  port: 8080
 
 microservices:
   reservation:
@@ -48,3 +55,12 @@ microservices:
     base-url: http://menu-service:8082
   loyalty:
     base-url: http://loyalty-service:8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
