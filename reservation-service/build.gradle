@@ -36,22 +36,12 @@ dependencies {
 
 jacoco {
     toolVersion = '0.8.11'
-    reportsDirectory = layout.buildDirectory.dir('jacocoReports')
+    reportsDirectory = layout.buildDirectory.dir('customJacocoReportDir')
 }
 
-def coverageExclusions = [
-        '**/*Application*',
-        '**/common/**',
-        '**/domain/**',
-        '**/presentationlayer/dto/**',
-        '**/exception/**',
-        '**/menu/**',
-        '**/loyalty/**'
-]
-
-tasks.named('test') {
+tasks.test {
     useJUnitPlatform()
-    finalizedBy(tasks.named('jacocoTestReport'))
+    finalizedBy(tasks.jacocoTestReport)
     testLogging {
         events("passed", "skipped", "failed")
         showExceptions = true
@@ -60,16 +50,15 @@ tasks.named('test') {
     }
 }
 
-tasks.named('jacocoTestReport') {
-    dependsOn test
+tasks.jacocoTestReport {
     reports {
-        xml.required = true
+        xml.required = false
         csv.required = false
-        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml')
     }
 }
 
-tasks.named('jacocoTestCoverageVerification') {
+tasks.jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
@@ -78,22 +67,19 @@ tasks.named('jacocoTestCoverageVerification') {
                 minimum = 0.90
             }
         }
+        rule {
+            enabled = false
+            element = 'CLASS'
+            includes = ['org.gradle.*']
+            limit {
+                counter = 'LINE'
+                value = 'TOTALCOUNT'
+                maximum = 0.3
+            }
+        }
     }
 }
 
-tasks.named('check') {
-    dependsOn tasks.named('jacocoTestCoverageVerification')
-}
-
-afterEvaluate {
-    tasks.named('jacocoTestReport') {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: coverageExclusions)
-        }))
-    }
-    tasks.named('jacocoTestCoverageVerification') {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: coverageExclusions)
-        }))
-    }
+tasks.check {
+    dependsOn(tasks.jacocoTestCoverageVerification)
 }
