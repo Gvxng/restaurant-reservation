@@ -16,3 +16,21 @@ subprojects {
     group = rootProject.group
     version = rootProject.version
 }
+
+tasks.register('test') {
+    group = 'verification'
+    description = 'Runs tests for all subprojects.'
+    dependsOn(subprojects.collect { "${it.path}:test" })
+}
+
+tasks.register('jacocoTestReport') {
+    group = 'verification'
+    description = 'Generates JaCoCo reports for all subprojects.'
+    dependsOn(subprojects.collect { "${it.path}:jacocoTestReport" })
+}
+
+tasks.register('jacocoTestCoverageVerification') {
+    group = 'verification'
+    description = 'Verifies JaCoCo coverage rules for all subprojects.'
+    dependsOn(subprojects.findAll { it.name != 'api-gateway-service' }.collect { "${it.path}:jacocoTestCoverageVerification" })
+}
