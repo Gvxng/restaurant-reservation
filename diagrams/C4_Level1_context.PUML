@@ -12,13 +12,13 @@ Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, d
 System(restaurant_platform, "Restaurant Reservation Microservices Platform", "Spring Boot microservices landscape composed of an API Gateway and three lower-level services.")
 
 System_Ext(mysql_admin, "phpMyAdmin", "Database administration tool for the MySQL-backed reservation and loyalty databases.")
-System_Ext(adminer, "Adminer", "Database administration tool for the Postgres-backed menu database.")
+System_Ext(pgadmin, "pgAdmin", "Database administration tool for the Postgres-backed menu database.")
 
 Rel(customer, restaurant_platform, "Uses", "HTTPS/JSON")
 Rel(staff, restaurant_platform, "Uses", "HTTPS/JSON")
 Rel(staff, mysql_admin, "Uses", "HTTPS")
-Rel(staff, adminer, "Uses", "HTTPS")
+Rel(staff, pgadmin, "Uses", "HTTPS")
 Rel(mysql_admin, restaurant_platform, "Administers stored MySQL data for", "SQL over Docker network")
-Rel(adminer, restaurant_platform, "Administers stored Postgres data for", "SQL over Docker network")
+Rel(pgadmin, restaurant_platform, "Administers stored Postgres data for", "SQL over Docker network")
 
 @enduml

@@ -108,11 +108,16 @@ services:
       loyalty-db:
         condition: service_healthy
 
-  db-adminer:
-    image: adminer:latest
-    container_name: restaurant-db-adminer
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: restaurant-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@restaurant.com
+      PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "8082:8080"
+      - "8082:80"
+    volumes:
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
     depends_on:
       menu-db:
         condition: service_healthy

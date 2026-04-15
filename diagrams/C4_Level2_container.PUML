@@ -10,7 +10,7 @@ Person(customer, "Restaurant Customer", "Uses the public API to manage reservati
 Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, tables, menu items, and loyalty accounts.")
 
 System_Ext(mysql_admin, "phpMyAdmin", "Administers the MySQL databases used by the reservation and loyalty services.")
-System_Ext(adminer, "Adminer", "Administers the Postgres database used by the menu service.")
+System_Ext(pgadmin, "pgAdmin", "Administers the Postgres database used by the menu service.")
 
 System_Boundary(c1, "Restaurant Reservation Microservices Platform") {
     Container(api_gateway, "API Gateway Service", "Java 17, Spring Boot, RestTemplate, Spring HATEOAS", "Single public entry point. Exposes HATEOAS-enabled endpoints and forwards requests to the internal services.")
@@ -37,9 +37,9 @@ Rel_D(menu_service, menu_db, "Reads from and writes to", "JDBC/SQL")
 Rel_D(loyalty_service, loyalty_db, "Reads from and writes to", "JDBC/SQL")
 
 Rel(staff, mysql_admin, "Uses", "HTTPS")
-Rel(staff, adminer, "Uses", "HTTPS")
+Rel(staff, pgadmin, "Uses", "HTTPS")
 Rel(mysql_admin, reservation_db, "Reads from and writes to", "MySQL/TCP")
 Rel(mysql_admin, loyalty_db, "Reads from and writes to", "MySQL/TCP")
-Rel(adminer, menu_db, "Reads from and writes to", "PostgreSQL/TCP")
+Rel(pgadmin, menu_db, "Reads from and writes to", "PostgreSQL/TCP")
 
 @enduml

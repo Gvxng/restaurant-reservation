@@ -4,8 +4,6 @@
 # Server configuration
 server:
   port: 8081  # The port on which the application will run.
-  error:
-    include-message: always
 
 # Logging configuration
 logging:
@@ -19,6 +17,9 @@ logging:
 spring:
   application:
     name: reservation-service
+  web:
+    error:
+      include-message: always
   config:
     activate:
       on-profile: default

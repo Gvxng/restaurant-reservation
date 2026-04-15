@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "menu-db",
+      "Group": "Restaurant Reservation",
+      "Host": "menu-db",
+      "Port": 5432,
+      "MaintenanceDB": "menu_db",
+      "Username": "postgres",
+      "SSLMode": "prefer"
+    }
+  }
+}
