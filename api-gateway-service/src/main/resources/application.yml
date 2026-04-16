@@ -51,11 +51,11 @@ spring:
 
 microservices:
   reservation:
-    base-url: http://reservation-service:8081
+    base-url: http://reservation-service:8080
   menu:
-    base-url: http://menu-service:8082
+    base-url: http://menu-service:8080
   loyalty:
-    base-url: http://loyalty-service:8083
+    base-url: http://loyalty-service:8080
 
 management:
   endpoints:
