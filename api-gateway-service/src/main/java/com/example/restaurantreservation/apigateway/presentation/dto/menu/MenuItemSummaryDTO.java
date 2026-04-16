@@ -1,5 +1,7 @@
 package com.example.restaurantreservation.apigateway.presentation.dto.menu;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import java.math.BigDecimal;
 
@@ -12,5 +14,7 @@ public class MenuItemSummaryDTO {
     private String name;
     private BigDecimal amount;
     private String currency;
+    @JsonProperty("available")
+    @JsonAlias("isAvailable")
     private boolean isAvailable;
 }

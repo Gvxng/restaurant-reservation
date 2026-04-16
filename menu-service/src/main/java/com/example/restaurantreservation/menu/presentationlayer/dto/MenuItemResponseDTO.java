@@ -1,5 +1,7 @@
 package com.example.restaurantreservation.menu.presentationlayer.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.example.restaurantreservation.menu.domain.enums.MenuCategory;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +25,8 @@ public class MenuItemResponseDTO {
     private BigDecimal amount;
     private String currency;
     private MenuCategory category;
+    @JsonProperty("available")
+    @JsonAlias("isAvailable")
     private boolean isAvailable;
     private String dietaryTags;
 }

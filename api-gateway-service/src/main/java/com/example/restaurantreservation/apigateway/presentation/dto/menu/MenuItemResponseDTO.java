@@ -1,5 +1,6 @@
 package com.example.restaurantreservation.apigateway.presentation.dto.menu;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
@@ -19,6 +20,8 @@ public class MenuItemResponseDTO {
     private BigDecimal amount;
     private String currency;
     private MenuCategory category;
+    @JsonProperty("available")
+    @JsonAlias("isAvailable")
     private boolean isAvailable;
     private String dietaryTags;
 

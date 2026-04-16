@@ -1,5 +1,7 @@
 package com.example.restaurantreservation.apigateway.presentation.dto.menu;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -29,6 +31,8 @@ public class CreateMenuItemRequestDTO {
     @NotNull(message = "Category is required")
     private MenuCategory category;
 
+    @JsonProperty("available")
+    @JsonAlias("isAvailable")
     private boolean isAvailable = true;
 
     private String dietaryTags;
