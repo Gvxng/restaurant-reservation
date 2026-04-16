@@ -115,7 +115,7 @@ Each low-level microservice now owns its own database:
 Files involved:
 
 - `docker-compose.yml`
-- each service `src/main/resources/application.properties`
+- each service `src/main/resources/application.yml`
 
 Why this change was made:
 

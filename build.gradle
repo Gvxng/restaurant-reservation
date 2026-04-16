@@ -1,6 +1,22 @@
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
+import org.gradle.api.tasks.options.Option
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     id 'org.springframework.boot' version '4.0.3' apply false
     id 'io.spring.dependency-management' version '1.1.7' apply false
+}
+
+abstract class AggregateTestTask extends DefaultTask {
+    @Input
+    @Optional
+    abstract ListProperty<String> getIncludedTests()
+
+    @Option(option = 'tests', description = 'Runs only the specified test classes or methods across subprojects.')
+    void setTestFilters(List<String> patterns) {
+        includedTests.set(patterns)
+    }
 }
 
 group = 'com.example.restaurantreservation'
@@ -17,10 +33,24 @@ subprojects {
     version = rootProject.version
 }
 
-tasks.register('test') {
+def aggregateTest = tasks.register('test', AggregateTestTask) {
     group = 'verification'
     description = 'Runs tests for all subprojects.'
     dependsOn(subprojects.collect { "${it.path}:test" })
+}
+
+gradle.taskGraph.whenReady {
+    def patterns = aggregateTest.get().includedTests.orNull ?: []
+    if (!patterns.isEmpty()) {
+        subprojects.each { subproject ->
+            subproject.tasks.withType(Test).configureEach { testTask ->
+                filter.setFailOnNoMatchingTests(false)
+                patterns.each { pattern ->
+                    filter.includeTestsMatching(pattern)
+                }
+            }
+        }
+    }
 }
 
 tasks.register('jacocoTestReport') {
