@@ -9,16 +9,31 @@ title System Context Diagram for Restaurant Reservation Microservices Platform
 Person(customer, "Restaurant Customer", "Uses the public API to browse menu items, book tables, and manage pre-orders.")
 Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, dining tables, menu items, and loyalty accounts.")
 
-System(restaurant_platform, "Restaurant Reservation Microservices Platform", "Spring Boot microservices landscape composed of an API Gateway and three lower-level services.")
+System(restaurant_platform, "Restaurant Reservation Microservices Platform", "Spring Boot microservices landscape with an API Gateway, a Mongo-backed reservation aggregator, and three lower-level domain services.")
 
-System_Ext(mysql_admin, "phpMyAdmin", "Database administration tool for the MySQL-backed reservation and loyalty databases.")
-System_Ext(pgadmin, "pgAdmin", "Database administration tool for the Postgres-backed menu database.")
+System_Ext(mysql_admin, "phpMyAdmin", "Admin GUI for MySQL databases. Available only when the admin compose override is enabled.")
+System_Ext(pgadmin, "pgAdmin", "Admin GUI for the Postgres menu database. Available only when the admin compose override is enabled.")
+System_Ext(mongo_express, "Mongo Express", "Admin GUI for the MongoDB reservation aggregate database. Available only when the admin compose override is enabled.")
+System_Ext(swagger_ui, "Swagger UI", "Optional API documentation UI for presentation evidence. Available only when the admin compose override is enabled.")
 
-Rel(customer, restaurant_platform, "Uses", "HTTPS/JSON")
-Rel(staff, restaurant_platform, "Uses", "HTTPS/JSON")
-Rel(staff, mysql_admin, "Uses", "HTTPS")
-Rel(staff, pgadmin, "Uses", "HTTPS")
-Rel(mysql_admin, restaurant_platform, "Administers stored MySQL data for", "SQL over Docker network")
-Rel(pgadmin, restaurant_platform, "Administers stored Postgres data for", "SQL over Docker network")
+Rel(customer, restaurant_platform, "Uses only through API Gateway", "HTTP/JSON on port 8080")
+Rel(staff, restaurant_platform, "Uses only through API Gateway", "HTTP/JSON on port 8080")
+
+Rel(staff, mysql_admin, "Inspects MySQL data during presentation", "HTTP")
+Rel(staff, pgadmin, "Inspects Postgres data during presentation", "HTTP")
+Rel(staff, mongo_express, "Inspects Mongo aggregate snapshots during presentation", "HTTP")
+Rel(staff, swagger_ui, "Inspects API documentation during presentation", "HTTP")
+
+Rel(mysql_admin, restaurant_platform, "Administers internal MySQL databases", "SQL over Docker network")
+Rel(pgadmin, restaurant_platform, "Administers internal Postgres database", "SQL over Docker network")
+Rel(mongo_express, restaurant_platform, "Administers internal MongoDB database", "MongoDB over Docker network")
+
+note right of restaurant_platform
+  Default docker-compose exposes only
+  API Gateway on port 8080.
+  Low-level services, databases, and admin
+  tools stay inside the Docker network unless
+  docker-compose.admin.yml is added.
+end note
 
 @enduml

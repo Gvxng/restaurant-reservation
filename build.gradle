@@ -62,5 +62,5 @@ tasks.register('jacocoTestReport') {
 tasks.register('jacocoTestCoverageVerification') {
     group = 'verification'
     description = 'Verifies JaCoCo coverage rules for all subprojects.'
-    dependsOn(subprojects.findAll { it.name != 'api-gateway-service' }.collect { "${it.path}:jacocoTestCoverageVerification" })
+    dependsOn(subprojects.collect { "${it.path}:jacocoTestCoverageVerification" })
 }

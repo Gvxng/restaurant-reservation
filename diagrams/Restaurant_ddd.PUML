@@ -1,5 +1,5 @@
 @startuml
-title Restaurant Reservation System - Updated DDD Domain Model
+title Restaurant Reservation System - Milestone 2 DDD Domain Model
 
 skinparam linetype ortho
 skinparam nodesep 45
@@ -21,7 +21,57 @@ skinparam class {
     AttributeFontSize 10
 }
 
-package "Reservation Management Bounded Context\n<<Core Subdomain>>" #E8D5F5 {
+package "Reservation Aggregator Bounded Context\n<<Core Orchestrating Subdomain>>" #DCEBFF {
+    class ReservationAggregate <<Aggregate Root>>\n<<Entity, Mongo Document>> #DCEBFF {
+        aggregateId : String
+        bookingId : Long
+        preOrderId : Long [0..1]
+        customerId : Long
+        tableId : Long
+        reservationDate : LocalDate
+        timeSlotStart : LocalTime
+        timeSlotEnd : LocalTime
+        partySize : Integer
+        status : String
+        totalAmount : Money
+        loyaltyPointsEarned : Integer
+        createdAt : LocalDateTime
+        updatedAt : LocalDateTime
+    }
+
+    class PreOrderItemSnapshot <<Entity Snapshot>> #DCEBFF {
+        menuItemId : Long
+        menuItemName : String
+        quantity : Integer
+        unitAmount : Money
+        lineTotal : Money
+        availableAtDecisionTime : Boolean
+    }
+
+    class DiningTableSnapshot <<Value Snapshot>> #DCEBFF {
+        tableId : Long
+        tableNumber : String
+        seatingCapacity : Integer
+        tableType : TableType
+        status : TableStatus
+        sectionName : String
+    }
+
+    class LoyaltyAccountSnapshot <<Value Snapshot>> #DCEBFF {
+        accountId : Long
+        customerId : Long
+        pointsBalance : Integer
+        tier : LoyaltyTier
+    }
+
+    ReservationAggregate "1" *-- "1..*" PreOrderItemSnapshot : computed pre-order
+    ReservationAggregate "1" *-- "0..1" DiningTableSnapshot : table snapshot
+    ReservationAggregate "1" *-- "0..1" LoyaltyAccountSnapshot : loyalty snapshot
+    PreOrderItemSnapshot "1" *-- "1" Money : unitAmount and lineTotal
+    ReservationAggregate "1" *-- "1" Money : totalAmount
+}
+
+package "Reservation Operations Bounded Context\n<<Low-level Subdomain>>" #E8D5F5 {
     class TableBooking <<Aggregate Root>>\n<<Entity>> #E8D5F5 {
         bookingId : Long
         customerId : Long
@@ -69,11 +119,11 @@ package "Reservation Management Bounded Context\n<<Core Subdomain>>" #E8D5F5 {
     }
 
     class BookingStatus <<Value Object>> #F5D5CC {
-        value : PENDING | CONFIRMED | COMPLETED | CANCELLED
+        value : PENDING | CONFIRMED | SEATED | COMPLETED | CANCELLED
     }
 
     class PreOrderStatus <<Value Object>> #F5D5CC {
-        value : DRAFT | CONFIRMED
+        value : DRAFT | SUBMITTED | CONFIRMED | PREPARED
     }
 
     class TableType <<Value Object>> #F5D5CC {
@@ -82,11 +132,6 @@ package "Reservation Management Bounded Context\n<<Core Subdomain>>" #E8D5F5 {
 
     class TableStatus <<Value Object>> #F5D5CC {
         value : AVAILABLE | RESERVED | OCCUPIED | MAINTENANCE
-    }
-
-    class Money <<Value Object>> #F5D5CC {
-        amount : BigDecimal
-        currency : String
     }
 
     FloorSection "1" o-- "0..*" DiningTable : contains
@@ -151,7 +196,7 @@ package "Loyalty Management Bounded Context\n<<Supporting Subdomain>>" #FDE9CC {
     }
 
     class TransactionType <<Value Object>> #F5D5CC {
-        value : EARNED | REDEEMED
+        value : EARNED | REDEEMED | EXPIRED | ADJUSTED
     }
 
     class CustomerReference <<Value Object>> #FFFACC {
@@ -162,12 +207,32 @@ package "Loyalty Management Bounded Context\n<<Supporting Subdomain>>" #FDE9CC {
     LoyaltyAccount "1" *-- "1" CustomerReference : customerId
 }
 
+class Money <<Value Object>> #F5D5CC {
+    amount : BigDecimal
+    currency : String
+}
+
+ReservationAggregate ..> TableBooking : orchestrates create/update/delete
+ReservationAggregate ..> PreOrder : orchestrates computed pre-order
+ReservationAggregate ..> MenuItem : verifies availability and price
+ReservationAggregate ..> LoyaltyAccount : reads account and posts earned points
+PreOrderItemSnapshot ..> MenuItemIdentifier : references menu item by id
 OrderLineItem ..> MenuItemIdentifier : references menu item by id
 TableBooking ..> CustomerReference : references customer by id
 PointsTransaction ..> TableBooking : references completed bookingId
 
+note as AggregateInvariant #DCEBFF
+  <b>ReservationAggregate Invariant</b>
+  A reservation pre-order can be created or updated
+  only when every requested MenuItem is available.
+
+  totalAmount must be computed from Menu Service
+  prices at orchestration time. Client input is not
+  trusted for menu item price or aggregate total.
+end note
+
 note as ReservationRules #FAEAFB
-  <b>Reservation Management Invariants</b>
+  <b>Reservation Operations Invariants</b>
   1. A dining table cannot be double-booked
      for the same date and overlapping time slot.
   2. partySize must not exceed seatingCapacity.
@@ -180,6 +245,8 @@ note as MenuRules #DAF0FB
   <b>Menu Management Invariants</b>
   1. Menu item price must be greater than 0.
   2. Each MenuItem belongs to exactly one Menu.
+  3. isAvailable is the source of truth for
+     aggregate pre-order eligibility.
 end note
 
 note as LoyaltyRules #FEF0D8
@@ -189,21 +256,22 @@ note as LoyaltyRules #FEF0D8
   3. Tier upgrades are driven by points balance.
 end note
 
-note as MilestoneOneNote #FFFACC
-  <b>Milestone 1 Boundary</b>
-  Bounded contexts remain autonomous.
-  Cross-context relationships are by identifier only.
-  No aggregate in one bounded context embeds data
-  owned by another microservice.
+note as MilestoneTwoNote #FFFACC
+  <b>Milestone 2 Boundary</b>
+  The API Gateway is the only public entry point.
+  The aggregator persists MongoDB snapshots and uses
+  domain clients to call Reservation, Menu, and Loyalty
+  services inside the Docker network.
 end note
 
 legend right
   |= Color |= Meaning |
-  | <back:#E8D5F5>Purple</back> | Reservation Management bounded context |
+  | <back:#DCEBFF>Light blue</back> | Core Reservation Aggregator bounded context |
+  | <back:#E8D5F5>Purple</back> | Low-level reservation operations bounded context |
   | <back:#D5E8F5>Blue</back> | Menu Management bounded context |
   | <back:#FDE9CC>Orange</back> | Loyalty Management bounded context |
   | <back:#F5D5CC>Salmon</back> | Value object |
-  | <back:#FFFACC>Yellow</back> | External or cross-context identifier |
+  | <back:#FFFACC>Yellow</back> | External or cross-context identifier/note |
 end legend
 
 @enduml

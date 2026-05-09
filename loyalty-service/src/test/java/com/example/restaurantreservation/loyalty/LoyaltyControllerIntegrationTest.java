@@ -53,6 +53,75 @@ class LoyaltyControllerIntegrationTest {
     }
 
     @Test
+    void getLoyaltyAccountByCustomerIdReturnsSeededSummary() {
+        webTestClient.get()
+                .uri("/api/v1/loyalty-accounts/customer/101")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.accountId").isEqualTo(1)
+                .jsonPath("$.customerId").isEqualTo(101)
+                .jsonPath("$.pointsBalance").isEqualTo(1500);
+    }
+
+    @Test
+    void getLoyaltyAccountByUnknownCustomerIdReturnsNotFound() {
+        webTestClient.get()
+                .uri("/api/v1/loyalty-accounts/customer/99999")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.message").value(message -> ((String) message).contains("LoyaltyAccount for customer"));
+    }
+
+    @Test
+    void earnLoyaltyPointsByCustomerIdUpdatesSummary() {
+        CreateLoyaltyAccountRequestDTO request = new CreateLoyaltyAccountRequestDTO();
+        request.setCustomerId(777L);
+        request.setPointsBalance(0);
+        request.setTier(LoyaltyTier.BRONZE);
+        request.setEnrollmentDate(LocalDate.now());
+
+        webTestClient.post()
+                .uri("/api/v1/loyalty-accounts")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isCreated();
+
+        webTestClient.post()
+                .uri("/api/v1/loyalty-accounts/customer/777/points")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {
+                          "bookingId": 7001,
+                          "points": 125
+                        }
+                        """)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.customerId").isEqualTo(777)
+                .jsonPath("$.pointsBalance").isEqualTo(125)
+                .jsonPath("$.tier").isEqualTo("BRONZE");
+    }
+
+    @Test
+    void earnLoyaltyPointsForUnknownCustomerReturnsNotFound() {
+        webTestClient.post()
+                .uri("/api/v1/loyalty-accounts/customer/99999/points")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("""
+                        {
+                          "bookingId": 7001,
+                          "points": 125
+                        }
+                        """)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
     void createUpdateAndDeleteLoyaltyAccountWorks() {
         CreateLoyaltyAccountRequestDTO request = new CreateLoyaltyAccountRequestDTO();
         request.setCustomerId(999L);

@@ -30,6 +30,8 @@ microservices:
     base-url: http://localhost:8082
   loyalty:
     base-url: http://localhost:8083
+  aggregator:
+    base-url: http://localhost:8084
 
 management:
   endpoints:
@@ -39,6 +41,9 @@ management:
   endpoint:
     health:
       show-details: always
+
+springdoc:
+  enable-hateoas: false
 
 ---
 # Spring configuration for "docker" profile
@@ -56,6 +61,8 @@ microservices:
     base-url: http://menu-service:8080
   loyalty:
     base-url: http://loyalty-service:8080
+  aggregator:
+    base-url: http://reservation-aggregator-service:8080
 
 management:
   endpoints:
@@ -65,3 +72,6 @@ management:
   endpoint:
     health:
       show-details: always
+
+springdoc:
+  enable-hateoas: false

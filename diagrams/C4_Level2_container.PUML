@@ -9,37 +9,67 @@ title Container Diagram for Restaurant Reservation Microservices Platform
 Person(customer, "Restaurant Customer", "Uses the public API to manage reservations and pre-orders.")
 Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, tables, menu items, and loyalty accounts.")
 
-System_Ext(mysql_admin, "phpMyAdmin", "Administers the MySQL databases used by the reservation and loyalty services.")
-System_Ext(pgadmin, "pgAdmin", "Administers the Postgres database used by the menu service.")
+System_Ext(mysql_admin, "phpMyAdmin", "Admin GUI for MySQL databases, enabled only by docker-compose.admin.yml.")
+System_Ext(pgadmin, "pgAdmin", "Admin GUI for the Postgres menu database, enabled only by docker-compose.admin.yml.")
+System_Ext(mongo_express, "Mongo Express", "Admin GUI for the MongoDB aggregate database, enabled only by docker-compose.admin.yml.")
+System_Ext(swagger_ui, "Swagger UI", "Optional API documentation UI, enabled only by docker-compose.admin.yml.")
 
 System_Boundary(c1, "Restaurant Reservation Microservices Platform") {
-    Container(api_gateway, "API Gateway Service", "Java 17, Spring Boot, RestTemplate, Spring HATEOAS", "Single public entry point. Exposes HATEOAS-enabled endpoints and forwards requests to the internal services.")
+    Container(api_gateway, "API Gateway Service", "Java 17, Spring Boot, RestTemplate, Spring HATEOAS", "Only public container in the default Docker Compose deployment. Exposes HATEOAS-enabled /api/v1 endpoints.")
 
-    Container(reservation_service, "Reservation Service", "Java 17, Spring Boot", "Owns bookings, pre-orders, dining tables, floor sections, and reservation business rules.")
+    Container(reservation_aggregator_service, "Reservation Aggregator Service", "Java 17, Spring Boot, WebClient, MongoDB", "Orchestrates reservation aggregate use cases. Enforces menu availability and computes pre-order totals from menu prices.")
+    ContainerDb(aggregator_db, "Aggregator DB", "MongoDB 7", "Stores ReservationAggregate snapshots, pre-order item snapshots, table snapshots, and loyalty snapshots.")
+
+    Container(reservation_service, "Reservation Service", "Java 17, Spring Boot", "Owns bookings, pre-orders, dining tables, floor sections, and reservation operation rules.")
     ContainerDb(reservation_db, "Reservation DB", "MySQL 8", "Stores bookings, pre-orders, order line items, dining tables, and floor sections.")
 
-    Container(menu_service, "Menu Service", "Java 17, Spring Boot", "Owns menu items and menus.")
+    Container(menu_service, "Menu Service", "Java 17, Spring Boot", "Owns menus, menu items, prices, categories, and availability.")
     ContainerDb(menu_db, "Menu DB", "PostgreSQL 16", "Stores menus and menu items.")
 
     Container(loyalty_service, "Loyalty Service", "Java 17, Spring Boot", "Owns loyalty accounts, tiers, and points transactions.")
     ContainerDb(loyalty_db, "Loyalty DB", "MySQL 8", "Stores loyalty accounts and points transactions.")
 }
 
-Rel(customer, api_gateway, "Uses", "JSON/REST/HTTPS")
-Rel(staff, api_gateway, "Uses", "JSON/REST/HTTPS")
+Rel(customer, api_gateway, "Uses", "HTTP/JSON on port 8080")
+Rel(staff, api_gateway, "Uses", "HTTP/JSON on port 8080")
 
-Rel(api_gateway, reservation_service, "Forwards reservation, pre-order, and dining-table requests", "HTTP/JSON")
+Rel(api_gateway, reservation_aggregator_service, "Forwards /api/v1/reservations aggregate requests", "HTTP/JSON")
+Rel(api_gateway, reservation_service, "Forwards booking, pre-order, and dining-table requests", "HTTP/JSON")
 Rel(api_gateway, menu_service, "Forwards menu item requests", "HTTP/JSON")
 Rel(api_gateway, loyalty_service, "Forwards loyalty account requests", "HTTP/JSON")
 
+Rel(reservation_aggregator_service, reservation_service, "Creates, updates, reads, and deletes bookings/pre-orders", "HTTP/JSON via WebClient")
+Rel(reservation_aggregator_service, menu_service, "Reads menu item availability and prices", "HTTP/JSON via WebClient")
+Rel(reservation_aggregator_service, loyalty_service, "Reads customer loyalty account and posts earned points", "HTTP/JSON via WebClient")
+
+Rel_D(reservation_aggregator_service, aggregator_db, "Reads from and writes to", "MongoDB protocol")
 Rel_D(reservation_service, reservation_db, "Reads from and writes to", "JDBC/SQL")
 Rel_D(menu_service, menu_db, "Reads from and writes to", "JDBC/SQL")
 Rel_D(loyalty_service, loyalty_db, "Reads from and writes to", "JDBC/SQL")
 
-Rel(staff, mysql_admin, "Uses", "HTTPS")
-Rel(staff, pgadmin, "Uses", "HTTPS")
-Rel(mysql_admin, reservation_db, "Reads from and writes to", "MySQL/TCP")
-Rel(mysql_admin, loyalty_db, "Reads from and writes to", "MySQL/TCP")
-Rel(pgadmin, menu_db, "Reads from and writes to", "PostgreSQL/TCP")
+Rel(staff, mysql_admin, "Uses for presentation evidence", "HTTP")
+Rel(staff, pgadmin, "Uses for presentation evidence", "HTTP")
+Rel(staff, mongo_express, "Uses for presentation evidence", "HTTP")
+Rel(staff, swagger_ui, "Uses for presentation evidence", "HTTP")
+
+Rel(mysql_admin, reservation_db, "Reads from and writes to", "MySQL/TCP over Docker network")
+Rel(mysql_admin, loyalty_db, "Reads from and writes to", "MySQL/TCP over Docker network")
+Rel(pgadmin, menu_db, "Reads from and writes to", "PostgreSQL/TCP over Docker network")
+Rel(mongo_express, aggregator_db, "Reads from and writes to", "MongoDB/TCP over Docker network")
+Rel(swagger_ui, api_gateway, "Reads OpenAPI docs", "HTTP")
+
+note right of api_gateway
+  Default docker-compose.yml publishes only
+  api-gateway-service:8080.
+  All service-to-service and database traffic
+  is internal to the Docker network.
+end note
+
+note bottom of reservation_aggregator_service
+  Aggregate invariant:
+  every pre-order item must be available in
+  Menu Service, and totalAmount is computed
+  from Menu Service prices.
+end note
 
 @enduml

@@ -3,7 +3,10 @@ package com.example.restaurantreservation.loyalty.presentationlayer;
 import com.example.restaurantreservation.loyalty.businesslogiclayer.LoyaltyAccountService;
 import com.example.restaurantreservation.loyalty.businesslogiclayer.LoyaltyAccountServiceImpl;
 import com.example.restaurantreservation.loyalty.presentationlayer.dto.CreateLoyaltyAccountRequestDTO;
+import com.example.restaurantreservation.loyalty.presentationlayer.dto.EarnLoyaltyPointsRequestDTO;
 import com.example.restaurantreservation.loyalty.presentationlayer.dto.LoyaltyAccountResponseDTO;
+import com.example.restaurantreservation.loyalty.presentationlayer.dto.LoyaltyAccountSummaryDTO;
+import com.example.restaurantreservation.exception.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +32,27 @@ public class LoyaltyAccountController {
     @GetMapping("/{id}")
     public ResponseEntity<LoyaltyAccountResponseDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(loyaltyAccountService.findById(id));
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<LoyaltyAccountSummaryDTO> getByCustomerId(@PathVariable Long customerId) {
+        LoyaltyAccountSummaryDTO summary = loyaltyAccountService.getSummaryByCustomerId(customerId);
+        if (summary == null) {
+            throw new ResourceNotFoundException("LoyaltyAccount for customer", customerId);
+        }
+        return ResponseEntity.ok(summary);
+    }
+
+    @PostMapping("/customer/{customerId}/points")
+    public ResponseEntity<LoyaltyAccountSummaryDTO> earnPoints(
+            @PathVariable Long customerId,
+            @RequestBody @Valid EarnLoyaltyPointsRequestDTO dto) {
+        LoyaltyAccountSummaryDTO current = loyaltyAccountService.getSummaryByCustomerId(customerId);
+        if (current == null) {
+            throw new ResourceNotFoundException("LoyaltyAccount for customer", customerId);
+        }
+        loyaltyAccountService.earnPoints(customerId, dto.getBookingId(), dto.getPoints());
+        return ResponseEntity.ok(loyaltyAccountService.getSummaryByCustomerId(customerId));
     }
 
     @PostMapping

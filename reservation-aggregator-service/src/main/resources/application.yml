@@ -1,0 +1,93 @@
+server:
+  port: 8084
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    com.example.restaurantreservation: TRACE
+
+spring:
+  application:
+    name: reservation-aggregator-service
+  web:
+    error:
+      include-message: always
+  config:
+    activate:
+      on-profile: default
+  mongodb:
+    uri: mongodb://localhost:27017/reservation_aggregates
+
+microservices:
+  reservation:
+    base-url: http://localhost:8081
+  menu:
+    base-url: http://localhost:8082
+  loyalty:
+    base-url: http://localhost:8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+---
+spring:
+  application:
+    name: reservation-aggregator-service
+  config:
+    activate:
+      on-profile: docker
+  mongodb:
+    uri: mongodb://aggregator-db:27017/reservation_aggregates
+
+microservices:
+  reservation:
+    base-url: http://reservation-service:8080
+  menu:
+    base-url: http://menu-service:8080
+  loyalty:
+    base-url: http://loyalty-service:8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+---
+spring:
+  application:
+    name: reservation-aggregator-service
+  config:
+    activate:
+      on-profile: testing
+  mongodb:
+    host: localhost
+    port: 0
+    database: reservation_aggregates_test
+
+de:
+  flapdoodle:
+    mongodb:
+      embedded:
+        version: 7.0.5
+
+server:
+  port: 0
+
+microservices:
+  reservation:
+    base-url: http://localhost:8081
+  menu:
+    base-url: http://localhost:8082
+  loyalty:
+    base-url: http://localhost:8083

@@ -14,6 +14,24 @@ services:
         condition: service_started
       loyalty-service:
         condition: service_started
+      reservation-aggregator-service:
+        condition: service_started
+
+  reservation-aggregator-service:
+    build: ./reservation-aggregator-service
+    container_name: restaurant-reservation-aggregator-service
+    restart: on-failure
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      aggregator-db:
+        condition: service_healthy
+      reservation-service:
+        condition: service_started
+      menu-service:
+        condition: service_started
+      loyalty-service:
+        condition: service_started
 
   reservation-service:
     build: ./reservation-service
@@ -52,8 +70,6 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: reservation_db
-    ports:
-      - "3307:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
@@ -70,8 +86,6 @@ services:
       POSTGRES_DB: menu_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d menu_db"]
       interval: 10s
@@ -88,8 +102,6 @@ services:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_ROOT_HOST: "%"
       MYSQL_DATABASE: loyalty_db
-    ports:
-      - "3308:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 10s
@@ -99,34 +111,20 @@ services:
     volumes:
       - loyalty-mysql-data:/var/lib/mysql
 
-  mysql-admin:
-    image: phpmyadmin/phpmyadmin:latest
-    container_name: restaurant-mysql-admin
-    environment:
-      PMA_ARBITRARY: 1
-    ports:
-      - "8081:80"
-    depends_on:
-      reservation-db:
-        condition: service_healthy
-      loyalty-db:
-        condition: service_healthy
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: restaurant-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@restaurant.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "8082:80"
+  aggregator-db:
+    image: mongo:7
+    container_name: reservation-aggregator-mongo
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
     volumes:
-      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
-    depends_on:
-      menu-db:
-        condition: service_healthy
+      - aggregator-mongo-data:/data/db
 
 volumes:
   reservation-mysql-data:
   menu-postgres-data:
   loyalty-mysql-data:
+  aggregator-mongo-data:
