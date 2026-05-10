@@ -11,10 +11,10 @@ Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, d
 
 System(restaurant_platform, "Restaurant Reservation Microservices Platform", "Spring Boot microservices landscape with an API Gateway, a Mongo-backed reservation aggregator, and three lower-level domain services.")
 
-System_Ext(mysql_admin, "phpMyAdmin", "Admin GUI for MySQL databases. Available only when the admin compose override is enabled.")
-System_Ext(pgadmin, "pgAdmin", "Admin GUI for the Postgres menu database. Available only when the admin compose override is enabled.")
-System_Ext(mongo_express, "Mongo Express", "Admin GUI for the MongoDB reservation aggregate database. Available only when the admin compose override is enabled.")
-System_Ext(swagger_ui, "Swagger UI", "Optional API documentation UI for presentation evidence. Available only when the admin compose override is enabled.")
+System_Ext(mysql_admin, "phpMyAdmin", "Admin GUI for MySQL databases. Included in the main compose file for presentation evidence.")
+System_Ext(pgadmin, "pgAdmin", "Admin GUI for the Postgres menu database. Included in the main compose file for presentation evidence.")
+System_Ext(mongo_express, "Mongo Express", "Admin GUI for the MongoDB reservation aggregate database. Included in the main compose file for presentation evidence.")
+System_Ext(swagger_ui, "Swagger UI", "Optional API documentation UI. Included in the main compose file for presentation evidence.")
 
 Rel(customer, restaurant_platform, "Uses only through API Gateway", "HTTP/JSON on port 8080")
 Rel(staff, restaurant_platform, "Uses only through API Gateway", "HTTP/JSON on port 8080")
@@ -29,11 +29,11 @@ Rel(pgadmin, restaurant_platform, "Administers internal Postgres database", "SQL
 Rel(mongo_express, restaurant_platform, "Administers internal MongoDB database", "MongoDB over Docker network")
 
 note right of restaurant_platform
-  Default docker-compose exposes only
-  API Gateway on port 8080.
-  Low-level services, databases, and admin
-  tools stay inside the Docker network unless
-  docker-compose.admin.yml is added.
+  docker-compose.yml starts all 13 containers.
+  API Gateway on port 8080 is the only public
+  application API entry point.
+  Admin GUI ports are exposed only for
+  presentation/database evidence.
 end note
 
 @enduml

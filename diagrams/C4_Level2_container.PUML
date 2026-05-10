@@ -9,13 +9,13 @@ title Container Diagram for Restaurant Reservation Microservices Platform
 Person(customer, "Restaurant Customer", "Uses the public API to manage reservations and pre-orders.")
 Person(staff, "Restaurant Staff", "Uses the public API to manage reservations, tables, menu items, and loyalty accounts.")
 
-System_Ext(mysql_admin, "phpMyAdmin", "Admin GUI for MySQL databases, enabled only by docker-compose.admin.yml.")
-System_Ext(pgadmin, "pgAdmin", "Admin GUI for the Postgres menu database, enabled only by docker-compose.admin.yml.")
-System_Ext(mongo_express, "Mongo Express", "Admin GUI for the MongoDB aggregate database, enabled only by docker-compose.admin.yml.")
-System_Ext(swagger_ui, "Swagger UI", "Optional API documentation UI, enabled only by docker-compose.admin.yml.")
+System_Ext(mysql_admin, "phpMyAdmin", "Admin GUI for MySQL databases, included in docker-compose.yml for presentation evidence.")
+System_Ext(pgadmin, "pgAdmin", "Admin GUI for the Postgres menu database, included in docker-compose.yml for presentation evidence.")
+System_Ext(mongo_express, "Mongo Express", "Admin GUI for the MongoDB aggregate database, included in docker-compose.yml for presentation evidence.")
+System_Ext(swagger_ui, "Swagger UI", "Optional API documentation UI, included in docker-compose.yml for presentation evidence.")
 
 System_Boundary(c1, "Restaurant Reservation Microservices Platform") {
-    Container(api_gateway, "API Gateway Service", "Java 17, Spring Boot, RestTemplate, Spring HATEOAS", "Only public container in the default Docker Compose deployment. Exposes HATEOAS-enabled /api/v1 endpoints.")
+    Container(api_gateway, "API Gateway Service", "Java 17, Spring Boot, RestTemplate, Spring HATEOAS", "Only public application API entry point. Exposes HATEOAS-enabled /api/v1 endpoints on port 8080.")
 
     Container(reservation_aggregator_service, "Reservation Aggregator Service", "Java 17, Spring Boot, WebClient, MongoDB", "Orchestrates reservation aggregate use cases. Enforces menu availability and computes pre-order totals from menu prices.")
     ContainerDb(aggregator_db, "Aggregator DB", "MongoDB 7", "Stores ReservationAggregate snapshots, pre-order item snapshots, table snapshots, and loyalty snapshots.")
@@ -59,10 +59,13 @@ Rel(mongo_express, aggregator_db, "Reads from and writes to", "MongoDB/TCP over 
 Rel(swagger_ui, api_gateway, "Reads OpenAPI docs", "HTTP")
 
 note right of api_gateway
-  Default docker-compose.yml publishes only
-  api-gateway-service:8080.
-  All service-to-service and database traffic
-  is internal to the Docker network.
+  docker-compose.yml starts all 13 containers.
+  API Gateway on port 8080 is the only public
+  application API entry point.
+  Low-level service API ports and native
+  database ports are not published.
+  Admin GUI ports are exposed only for
+  presentation/database evidence.
 end note
 
 note bottom of reservation_aggregator_service
