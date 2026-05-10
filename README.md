@@ -52,9 +52,9 @@ The invariant is enforced in `reservation-aggregator-service` before creating or
 
 ## Docker
 
-### Default Milestone Run
+### Milestone Run
 
-Use this command for the strict Milestone 2 setup:
+Use this command to start the full Milestone 2 Docker landscape:
 
 ```bash
 docker compose up --build
@@ -62,29 +62,17 @@ docker compose up --build
 
 If your machine uses the older Compose command, use `docker-compose up --build` instead.
 
-Default exposed port:
+This starts all 13 containers required by the rubric: five application containers, four databases, and four GUI/documentation containers.
+
+Application API port:
 
 | URL | Purpose |
 |---|---|
 | `http://localhost:8080` | API Gateway |
 
-In the default `docker-compose.yml`, only the API Gateway publishes a host port. The low-level services, aggregator, and databases are reachable only inside the Docker network.
+All HTTP API testing must still go through the API Gateway. The low-level microservice API ports are not published. The extra browser ports are only for admin GUI evidence during the presentation.
 
-### Presentation/Admin Run
-
-Use this command when you need the browser GUI tools for presentation evidence:
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.admin.yml up --build
-```
-
-Older Compose command:
-
-```bash
-docker-compose -f docker-compose.yml -f docker-compose.admin.yml up --build
-```
-
-Additional admin URLs:
+Admin and evidence URLs:
 
 | URL | Tool | Purpose |
 |---|---|---|
@@ -93,7 +81,7 @@ Additional admin URLs:
 | `http://localhost:8082` | pgAdmin | Inspect the Postgres menu database |
 | `http://localhost:8083` | Mongo Express | Inspect the MongoDB aggregate database |
 
-The admin overlay adds GUI containers only. Application HTTP requests should still be demonstrated through `http://localhost:8080`.
+Application HTTP requests should still be demonstrated through `http://localhost:8080`.
 
 ## Build And Test
 

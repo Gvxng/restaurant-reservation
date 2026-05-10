@@ -30,7 +30,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(noRollbackFor = Exception.class)
+@Transactional
 public class TableBookingServiceImpl implements TableBookingService {
 
     private final TableBookingRepository bookingRepository;

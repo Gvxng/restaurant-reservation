@@ -340,15 +340,15 @@ Only the API Gateway publishes a host port in the default compose file:
 
 This satisfies the Milestone 2 requirement that only the API Gateway is externally accessible.
 
-### Admin Docker Overlay
+### Admin Docker Tools In The Main Compose File
 
-Admin/browser tools were moved to:
+Admin/browser tools were added to the main compose file so the rubric requirement of 13 containers with `docker-compose up` is satisfied:
 
 ```text
-docker-compose.admin.yml
+docker-compose.yml
 ```
 
-The admin overlay adds:
+The GUI/documentation tools are:
 
 | Service | Host Port |
 |---|---|
@@ -357,19 +357,19 @@ The admin overlay adds:
 | pgAdmin | `8082` |
 | Mongo Express | `8083` |
 
-Run the application and admin tools together with:
+Run the full landscape with:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.admin.yml up --build
+docker compose up --build
 ```
 
 If using the older Compose CLI, run:
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.admin.yml up --build
+docker-compose up --build
 ```
 
-This keeps the default compose strict while still allowing database GUI evidence for the presentation.
+This starts all 13 containers from one compose file. The low-level microservice API ports are not published; all API requests still go through the API Gateway on port `8080`. The other published ports are only for GUI evidence tools.
 
 ### Postman Collection
 
@@ -472,7 +472,7 @@ The current project contains:
 - 1 reservation aggregator microservice
 - 1 API Gateway microservice
 - 4 databases
-- 4 optional admin/browser tools through the admin compose overlay
+- 4 admin/browser tools in the main Docker Compose file
 - root multi-project Gradle build
 - service-level JaCoCo coverage verification
 - global exception handling in services, aggregator, and gateway
