@@ -1,272 +1,481 @@
 # Migration Change Log
 
 Course: 420-N45-LA Web Services and Distributed Computing  
-Milestone: Project Milestone 1  
 Project: Restaurant Reservation Microservices  
-Date: April 12, 2026
+Milestones: Project Milestone 1 and Project Milestone 2
 
-## Selected Process Option
+## Migration Strategy
 
-This project follows **Option 2** from the milestone instructions:
+The project started from the restaurant reservation lab application and was migrated into a Spring Boot microservices landscape. The migration followed the course approach of keeping the existing domain concepts, moving them into bounded service folders, and then adding gateway, Docker, testing, and aggregator behavior required by the milestones.
 
-> Integrate the classes/interfaces from the Lab webservice into the microservices project, making needed changes as you go.
+The project is not a fresh greenfield rewrite. It is a structured migration from a Lab-style layered application into independently buildable microservices.
 
-The final codebase was built by:
+## Milestone 1 Migration
 
-- bootstrapping Spring Boot service shells
-- creating a Gradle multi-project setup
-- moving and adapting Lab 1 domain code into the new services
-- making manual refactoring changes so the monolith structure would work as independent microservices
+### Original Monolith To Low-level Services
 
-This project was **not** implemented as a completely fresh greenfield system. It was migrated from the Lab-style layered application into a microservices landscape.
+The Lab 1 restaurant reservation domain was decomposed into these low-level services:
 
-## Original Monolith to Microservices Mapping
+| Service | Ownership |
+|---|---|
+| `reservation-service` | Bookings, pre-orders, dining tables, floor/table availability rules |
+| `menu-service` | Menu items, menu prices, availability, dietary/category data |
+| `loyalty-service` | Loyalty accounts, tiers, points balances |
+| `api-gateway-service` | Public REST facade and HATEOAS links |
 
-The Lab 1 restaurant reservation domain was decomposed into the following bounded contexts and services:
+`booking` and `floor` were grouped inside `reservation-service` because the milestone requires three low-level microservices. Floor management is treated as part of the reservation bounded context.
 
-- `reservation-service`
-  Reason: owns restaurant reservation workflows and table/floor management that are tightly related in Milestone 1.
-- `menu-service`
-  Reason: owns menu and menu-item management independently.
-- `loyalty-service`
-  Reason: owns loyalty accounts and loyalty business rules independently.
+### Multi-project Gradle Setup
+
+Created a root multi-project Gradle setup so the complete system can be built from the root:
+
+```text
+settings.gradle
+build.gradle
+gradlew
+gradlew.bat
+gradle/
+```
+
+Included projects:
+
+```text
+reservation-service
+menu-service
+loyalty-service
+api-gateway-service
+```
+
+### Layered Package Migration
+
+The Lab-style package structure was preserved inside each low-level service:
+
+```text
+presentationlayer
+businesslogiclayer
+dataaccesslayer
+datamappinglayer
+domain
+exception
+```
+
+This kept the migrated code close to the course examples while still separating each bounded context into its own Spring Boot application.
+
+### Database Separation
+
+Each low-level microservice was given its own database:
+
+| Service | Database |
+|---|---|
+| `reservation-service` | MySQL |
+| `menu-service` | Postgres |
+| `loyalty-service` | MySQL |
+
+This enforces service ownership of data and avoids sharing tables across services.
+
+### API Gateway
+
+The `api-gateway-service` was introduced as the single public facade. In Milestone 1 it forwarded requests to the low-level services and added HATEOAS links in gateway responses.
+
+Gateway DTOs were flattened under:
+
+```text
+com.example.restaurantreservation.apigateway.presentation.dto
+```
+
+This avoided copying complete low-level service packages into the gateway.
+
+### Low-level Exceptions
+
+Each low-level service includes subdomain-specific exceptions:
+
+| Service | Custom Exceptions |
+|---|---|
+| `reservation-service` | `TableAlreadyBookedException`, `DuplicateTableNumberException` |
+| `menu-service` | `InvalidMenuItemPriceException` |
+| `loyalty-service` | `DuplicateLoyaltyAccountException`, `NegativePointsBalanceException` |
+
+Global exception handlers were added to return appropriate HTTP status codes.
+
+### Milestone 1 Test Migration
+
+Low-level service tests were added for repository and controller integration paths. They include positive and negative cases, including custom exception scenarios.
+
+## Milestone 2 Migration
+
+### Added Reservation Aggregator Service
+
+Added a new service:
+
+```text
+reservation-aggregator-service
+```
+
+It was added to the root Gradle build:
+
+```text
+include 'reservation-aggregator-service'
+```
+
+The service follows the required course package layout:
+
+```text
+presentationlayer
+businesslogiclayer
+domainclientlayer
+dataaccesslayer
+datamappinglayer
+domain
+exception
+```
+
+It also includes its own wrapper/support files so it can be recognized as an independently scaffolded Spring Boot project:
+
+```text
+.gradle/
+gradle/
+.gitattributes
+.gitignore
+gradlew
+gradlew.bat
+HELP.md
+settings.gradle
+```
+
+The helper script for recreating the service shell is:
+
+```text
+create-reservation-aggregator-microservice.bash
+```
+
+### Aggregator Persistence
+
+The aggregator persists reservation aggregate documents in MongoDB:
+
+| Service | Database |
+|---|---|
+| `reservation-aggregator-service` | MongoDB |
+
+Docker service:
+
+```text
+aggregator-db
+```
+
+Mongo database:
+
+```text
+reservation_aggregates
+```
+
+### Aggregator Endpoints
+
+The aggregator exposes the required five aggregate endpoints:
+
+| Method | Endpoint |
+|---|---|
+| GET | `/api/v1/reservations` |
+| GET | `/api/v1/reservations/{aggregateId}` |
+| POST | `/api/v1/reservations` |
+| PUT | `/api/v1/reservations/{aggregateId}` |
+| DELETE | `/api/v1/reservations/{aggregateId}` |
+
+These endpoints are also exposed through the API Gateway at the same paths.
+
+### Aggregator Orchestration
+
+The aggregator coordinates all three low-level services:
+
+| Low-level Service | Aggregator Use |
+|---|---|
+| `reservation-service` | Creates/updates/deletes bookings and pre-orders |
+| `menu-service` | Reads menu item availability and price |
+| `loyalty-service` | Reads loyalty account snapshots and awards points when appropriate |
+
+The aggregate response combines:
+
+- data from the request model
+- booking/pre-order data from `reservation-service`
+- menu item snapshots from `menu-service`
+- loyalty snapshots from `loyalty-service`
+- aggregate metadata persisted in MongoDB
+
+### Aggregate Invariant
+
+Milestone 2 aggregate invariant:
+
+```text
+A reservation pre-order can only be created or updated with available menu items,
+and the pre-order total must be computed from menu-service prices instead of
+being trusted from client input.
+```
+
+Implementation location:
+
+```text
+reservation-aggregator-service/src/main/java/com/example/restaurantreservation/aggregator/businesslogiclayer/ReservationAggregatorServiceImpl.java
+```
+
+The aggregator reads every requested menu item from `menu-service`, rejects unavailable menu items, and computes line totals using menu-service prices. The client request does not provide or control `totalAmount`.
+
+### Aggregator DTOs
+
+Request DTO:
+
+```text
+CreateReservationRequestDTO
+```
+
+Response DTO:
+
+```text
+ReservationAggregateResponseDTO
+```
+
+Supporting request DTO:
+
+```text
+PreOrderItemRequestDTO
+```
+
+### Aggregator Exceptions
+
+The aggregator implements global exception handling and these exception types:
+
+| Exception | HTTP Status |
+|---|---|
+| `NotFoundException` | 404 |
+| `InvalidInputException` | 400 |
+| `MenuItemUnavailableException` | 409 |
+| `DownstreamServiceException` | Downstream status |
+
+`MenuItemUnavailableException` is the aggregator-specific custom domain exception.
+
+### Aggregator Domain Client Layer
+
+The aggregator has a domain client layer using WebClient:
+
+```text
+reservation-aggregator-service/src/main/java/com/example/restaurantreservation/aggregator/domainclientlayer
+```
+
+Clients:
+
+- `ReservationDomainClient`
+- `MenuDomainClient`
+- `LoyaltyDomainClient`
+
+These clients handle downstream HTTP errors and service-unavailable cases.
+
+### Low-level Loyalty Endpoints Added For Orchestration
+
+Added endpoints needed by the aggregator:
+
+| Method | Endpoint |
+|---|---|
+| GET | `/api/v1/loyalty-accounts/customer/{customerId}` |
+| POST | `/api/v1/loyalty-accounts/customer/{customerId}/points` |
+
+These allow the aggregator to read a loyalty account by customer ID and award points.
+
+### API Gateway Domain Client Layer
+
+The API Gateway was refactored to include an explicit domain client layer, as required by GI2:
+
+```text
+api-gateway-service/src/main/java/com/example/restaurantreservation/apigateway/domainclientlayer
+```
+
+Concrete gateway HTTP clients:
+
+- `AggregatorGatewayServiceImpl`
+- `ReservationGatewayServiceImpl`
+- `MenuGatewayServiceImpl`
+- `LoyaltyGatewayServiceImpl`
+
+The gateway controllers still depend on interfaces in `businesslogic`, while the concrete HTTP forwarding implementations live in `domainclientlayer`.
+
+### API Gateway Global Exception Handling
+
+The gateway implements global exception handling in:
+
+```text
+api-gateway-service/src/main/java/com/example/restaurantreservation/apigateway/presentation/GatewayExceptionHandler.java
+```
+
+It handles:
+
+- `HttpStatusCodeException` by forwarding the downstream status and body
+- `ResourceAccessException` by returning HTTP `503 Service Unavailable`
+
+### API Gateway HATEOAS
+
+The API Gateway adds `_links` to gateway responses, including reservation aggregate responses. For `/api/v1/reservations`, links include:
+
+- `self`
+- `all-reservations`
+- `booking`
+- `table`
+- `pre-order` when a pre-order exists
+
+### Docker Changes
+
+Default `docker-compose.yml` now contains the application landscape:
+
 - `api-gateway-service`
-  Reason: exposes a single entry point and adds HATEOAS without putting HATEOAS in the low-level services.
-
-### Service Split Decisions
-
-- `booking` and `floor` were grouped inside `reservation-service`
-  Reason: the milestone requires **three** low-level microservices, not four. Floor management was treated as part of the reservation bounded context rather than a separate microservice.
-- `menu` remained its own service
-  Reason: it has its own entities, repository layer, controller layer, and persistence concerns.
-- `loyalty` remained its own service
-  Reason: it has its own business rules, exceptions, and persistence concerns.
-
-## Main Migration Changes
-
-### 1. Multi-project Gradle structure
-
-Created a root Gradle multi-project setup so all services can be built from one command.
-
-Files involved:
-
-- `settings.gradle`
-- `build.gradle`
-- root `gradlew`, `gradlew.bat`, `gradle/`
-
-Why this change was made:
-
-- the milestone requires a multi-project Gradle build
-- the peer grading requires `./gradlew clean build` from the root
-
-### 2. Spring Boot microservice shells
-
-Created individual Spring Boot service projects for:
-
+- `reservation-aggregator-service`
 - `reservation-service`
 - `menu-service`
 - `loyalty-service`
-- `api-gateway-service`
+- `reservation-db`
+- `menu-db`
+- `loyalty-db`
+- `aggregator-db`
 
-Files involved:
+Only the API Gateway publishes a host port in the default compose file:
 
-- `create-projets.bash`
-- per-service `build.gradle`
-- per-service `settings.gradle`
-- per-service `gradlew`, `gradlew.bat`, `gradle/`, `.gitattributes`, `HELP.md`
+```text
+8080:8080
+```
 
-Why this change was made:
+This satisfies the Milestone 2 requirement that only the API Gateway is externally accessible.
 
-- each microservice needs an independent Spring Boot application
-- each service must still be buildable on its own
-- the structure now resembles the course microservices landscape example
+### Admin Docker Overlay
 
-### 3. Moving layered code from the monolith into services
+Admin/browser tools were moved to:
 
-The Lab-style layered structure was preserved inside each low-level service:
+```text
+docker-compose.admin.yml
+```
 
-- `presentationlayer`
-- `businesslogiclayer`
-- `dataaccesslayer`
-- `datamappinglayer`
-- `domain`
+The admin overlay adds:
 
-How the code was moved:
+| Service | Host Port |
+|---|---|
+| Swagger UI | `8081` |
+| phpMyAdmin | `8091` |
+| pgAdmin | `8082` |
+| Mongo Express | `8083` |
 
-- reservation-related classes were moved into `reservation-service`
-- floor/table classes were moved into `reservation-service`
-- menu classes were moved into `menu-service`
-- loyalty classes were moved into `loyalty-service`
+Run the application and admin tools together with:
 
-Why this change was made:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.admin.yml up --build
+```
 
-- it reuses the Lab project structure instead of rewriting everything from scratch
-- it minimizes package-level logic changes during migration
-- it preserves the layered architecture expected in the course
+If using the older Compose CLI, run:
 
-### 4. Database separation by service
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.admin.yml up --build
+```
 
-Each low-level microservice now owns its own database:
+This keeps the default compose strict while still allowing database GUI evidence for the presentation.
 
-- `reservation-service` -> MySQL
-- `menu-service` -> Postgres
-- `loyalty-service` -> MySQL
+### Postman Collection
 
-Files involved:
+Added:
 
-- `docker-compose.yml`
-- each service `src/main/resources/application.yml`
+```text
+postman/Restaurant-Reservation-Milestone2.postman_collection.json
+```
 
-Why this change was made:
+The collection uses:
 
-- the milestone requires one database per low-level microservice
-- the milestone requires one MySQL service, one Postgres service, and one service using either MySQL or Postgres
-- independent databases enforce microservice boundaries
+```text
+baseUrl = http://localhost:8080
+```
 
-### 5. Docker and Docker Compose landscape
+It includes low-level service endpoints, aggregator endpoints, and negative paths for exception handling/invariant demonstration.
 
-Created a Docker Compose setup for the landscape, including:
+### Bash System Integration Script
 
-- API gateway container
-- 3 low-level microservice containers
-- 3 database containers
-- phpMyAdmin
-- Adminer
+Added:
 
-Why this change was made:
+```text
+testing_scripts/milestone2_system_tests.bash
+```
 
-- the milestone requires Docker containerization
-- the milestone requires Docker Compose deployment
-- the peer demo requires showing the landscape running
+The script sends all requests through:
 
-### 6. API Gateway with HATEOAS
+```text
+http://localhost:8080
+```
 
-Created `api-gateway-service` as the public entry point.
+It verifies:
 
-Gateway responsibilities:
+- GET and POST for menu items
+- GET by ID for the created menu item
+- GET and POST for loyalty accounts
+- GET by ID for the created loyalty account
+- GET and POST for dining tables
+- GET by ID for the created dining table
+- GET ALL, GET by ID, POST, PUT, and DELETE for reservation aggregates
+- a negative aggregate invariant path using an unavailable menu item
 
-- exposes public REST endpoints
-- calls low-level microservices using `RestTemplate`
-- adds HATEOAS links in gateway response DTOs
+### Testing And Coverage
 
-Why this change was made:
+Milestone 2 testing now includes:
 
-- low-level microservices must not implement HATEOAS in Milestone 1
-- the instructions explicitly place HATEOAS in the API gateway
-- the gateway provides a single public facade over the internal services
+| Service | Test Types |
+|---|---|
+| `reservation-aggregator-service` | repository integration, controller integration, controller unit, service unit, domain client unit, coverage support |
+| `api-gateway-service` | controller integration, controller unit, service/domain-client unit |
+| `reservation-service` | repository integration, controller integration, service integration, coverage support |
+| `menu-service` | repository integration, controller integration, service integration, coverage support |
+| `loyalty-service` | repository integration, controller integration, service integration, coverage support |
 
-### 7. DTO flattening and gateway package cleanup
+Each microservice has JaCoCo verification configured for `90%` line coverage.
 
-The gateway DTOs were flattened under:
+Recent local coverage results:
 
-- `com.example.restaurantreservation.apigateway.presentation.dto`
+| Service | JaCoCo Line Coverage |
+|---|---:|
+| `api-gateway-service` | 96% |
+| `reservation-aggregator-service` | 91% |
+| `reservation-service` | 92% |
+| `menu-service` | 95% |
+| `loyalty-service` | 99% |
 
-This replaced copied low-level package roots inside the gateway.
+### Diagrams Updated
 
-Why this change was made:
+Updated diagrams are stored in:
 
-- to keep the gateway separate from the internal domain packages of other services
-- to avoid turning the gateway into a distributed monolith
-- to make the gateway package structure cleaner and easier to present
+```text
+diagrams/
+```
 
-### 8. Sub-domain specific exceptions
+Files:
 
-Each low-level service includes at least one domain-specific exception:
+- `Restaurant_ddd.PUML`
+- `Restaurant_ddd.png`
+- `C4_Level1_context.PUML`
+- `C4_Level1_context.png`
+- `C4_Level2_container.PUML`
+- `C4_Level2_container.png`
 
-- `reservation-service`
-  - `TableAlreadyBookedException`
-  - `DuplicateTableNumberException`
-- `menu-service`
-  - `InvalidMenuItemPriceException`
-- `loyalty-service`
-  - `DuplicateLoyaltyAccountException`
-  - `NegativePointsBalanceException`
+The diagrams now show:
 
-Why this change was made:
+- API Gateway as the only public application entry point
+- three low-level microservices
+- the reservation aggregator microservice
+- MySQL, Postgres, and MongoDB persistence
+- admin GUI tools for presentation evidence
+- the aggregate invariant on the DDD model
+- API Gateway calling all downstream services
+- aggregator internally orchestrating reservation, menu, and loyalty services
 
-- the milestone requires at least one sub-domain specific exception per low-level microservice
-- these exceptions are used directly in service logic and tested at controller level
+## Final Current State
 
-### 9. Repository and controller integration tests
+The current project contains:
 
-Added low-level microservice tests for:
-
-- repository integration
-- controller integration using `WebTestClient`
-- positive paths
-- negative paths
-- exception-specific negative scenarios
-
-Why this change was made:
-
-- the milestone requires both repository-based and controller-based integration testing
-- the milestone requires tests for the custom sub-domain exceptions
-- the milestone requires high Jacoco coverage
-
-### 10. Root monolith cleanup
-
-After the migration, the old monolith root `src` folder was removed.
-
-Also cleaned each microservice so it only contains packages that belong to that service.
-
-Examples:
-
-- `reservation-service` keeps `booking` and `floor`
-- `menu-service` keeps `menu`
-- `loyalty-service` keeps `loyalty`
-- `api-gateway-service` keeps only gateway code and gateway DTOs
-
-Why this change was made:
-
-- to avoid confusion between the old monolith and the new microservices landscape
-- to make the project structure easier to present during peer grading
-- to make each service visually consistent with its bounded context
-
-## Important Manual Refactoring Decisions
-
-- Merged `floor` into `reservation-service`
-  Reason: keeps the low-level service count at three while preserving the floor/table domain.
-- Kept low-level services independent
-  Reason: Milestone 1 says not to implement aggregates that require another microservice.
-- Preserved layered package naming from the Lab project
-  Reason: reduces migration risk and aligns with the course architecture style.
-- Added the API gateway as a facade service
-  Reason: centralizes HATEOAS and external access without coupling clients directly to low-level services.
-
-## Files and Areas Changed During Migration
-
-Key files and folders created or updated during the migration include:
-
-- `settings.gradle`
-- `build.gradle`
-- `docker-compose.yml`
-- `create-projets.bash`
-- `diagrams/`
-- `reservation-service/`
-- `menu-service/`
-- `loyalty-service/`
-- `api-gateway-service/`
-
-Common types of code changes:
-
-- package renaming and import fixes
-- controller extraction into service-specific applications
-- repository isolation by service
-- DTO updates
-- exception handling updates
-- application property changes for per-service ports and databases
-- Dockerfile creation and Docker Compose wiring
-- integration test migration and expansion
-
-## Final Result
-
-The Lab 1 monolith was migrated into a microservices architecture with:
-
-- 3 independent low-level microservices
-- 1 API gateway
-- separate databases per low-level service
+- 3 low-level microservices
+- 1 reservation aggregator microservice
+- 1 API Gateway microservice
+- 4 databases
+- 4 optional admin/browser tools through the admin compose overlay
 - root multi-project Gradle build
-- Docker Compose landscape
-- repository and controller integration tests
-- HATEOAS implemented only in the gateway
-
+- service-level JaCoCo coverage verification
+- global exception handling in services, aggregator, and gateway
+- API Gateway HATEOAS
+- Postman collection for presentation
+- bash system integration script for Milestone 2
