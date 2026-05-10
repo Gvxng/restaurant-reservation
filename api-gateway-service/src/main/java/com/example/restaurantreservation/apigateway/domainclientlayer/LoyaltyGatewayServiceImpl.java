@@ -1,5 +1,6 @@
-package com.example.restaurantreservation.apigateway.businesslogic;
+package com.example.restaurantreservation.apigateway.domainclientlayer;
 
+import com.example.restaurantreservation.apigateway.businesslogic.LoyaltyGatewayService;
 import com.example.restaurantreservation.apigateway.presentation.dto.loyalty.CreateLoyaltyAccountRequestDTO;
 import com.example.restaurantreservation.apigateway.presentation.dto.loyalty.LoyaltyAccountResponseDTO;
 import lombok.RequiredArgsConstructor;

@@ -1,5 +1,6 @@
-package com.example.restaurantreservation.apigateway.businesslogic;
+package com.example.restaurantreservation.apigateway.domainclientlayer;
 
+import com.example.restaurantreservation.apigateway.businesslogic.ReservationGatewayService;
 import com.example.restaurantreservation.apigateway.presentation.dto.booking.BookingResponseDTO;
 import com.example.restaurantreservation.apigateway.presentation.dto.booking.CreateBookingRequestDTO;
 import com.example.restaurantreservation.apigateway.presentation.dto.booking.CreatePreOrderRequestDTO;

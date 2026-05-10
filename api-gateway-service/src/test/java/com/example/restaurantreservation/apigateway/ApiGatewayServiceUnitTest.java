@@ -1,9 +1,9 @@
 package com.example.restaurantreservation.apigateway;
 
-import com.example.restaurantreservation.apigateway.businesslogic.AggregatorGatewayServiceImpl;
-import com.example.restaurantreservation.apigateway.businesslogic.LoyaltyGatewayServiceImpl;
-import com.example.restaurantreservation.apigateway.businesslogic.MenuGatewayServiceImpl;
-import com.example.restaurantreservation.apigateway.businesslogic.ReservationGatewayServiceImpl;
+import com.example.restaurantreservation.apigateway.domainclientlayer.AggregatorGatewayServiceImpl;
+import com.example.restaurantreservation.apigateway.domainclientlayer.LoyaltyGatewayServiceImpl;
+import com.example.restaurantreservation.apigateway.domainclientlayer.MenuGatewayServiceImpl;
+import com.example.restaurantreservation.apigateway.domainclientlayer.ReservationGatewayServiceImpl;
 import com.example.restaurantreservation.apigateway.presentation.GatewayExceptionHandler;
 import com.example.restaurantreservation.apigateway.presentation.dto.booking.BookingResponseDTO;
 import com.example.restaurantreservation.apigateway.presentation.dto.booking.BookingStatus;

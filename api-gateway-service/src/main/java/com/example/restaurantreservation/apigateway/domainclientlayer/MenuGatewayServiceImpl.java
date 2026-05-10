@@ -1,5 +1,6 @@
-package com.example.restaurantreservation.apigateway.businesslogic;
+package com.example.restaurantreservation.apigateway.domainclientlayer;
 
+import com.example.restaurantreservation.apigateway.businesslogic.MenuGatewayService;
 import com.example.restaurantreservation.apigateway.presentation.dto.menu.CreateMenuItemRequestDTO;
 import com.example.restaurantreservation.apigateway.presentation.dto.menu.MenuItemResponseDTO;
 import lombok.RequiredArgsConstructor;

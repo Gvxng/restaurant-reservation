@@ -1,5 +1,6 @@
-package com.example.restaurantreservation.apigateway.businesslogic;
+package com.example.restaurantreservation.apigateway.domainclientlayer;
 
+import com.example.restaurantreservation.apigateway.businesslogic.AggregatorGatewayService;
 import com.example.restaurantreservation.apigateway.presentation.dto.reservation.CreateReservationRequestDTO;
 import com.example.restaurantreservation.apigateway.presentation.dto.reservation.ReservationAggregateResponseDTO;
 import lombok.RequiredArgsConstructor;
