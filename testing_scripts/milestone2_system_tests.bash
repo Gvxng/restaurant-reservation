@@ -77,6 +77,9 @@ request POST "/api/v1/menu-items" 201 "{
 AVAILABLE_MENU_ITEM_ID="$(json_value menuItemId)"
 pass "POST menu downstream through API Gateway created menu item ${AVAILABLE_MENU_ITEM_ID}"
 
+request GET "/api/v1/menu-items/${AVAILABLE_MENU_ITEM_ID}" 200
+pass "GET menu item by id through API Gateway"
+
 request POST "/api/v1/menu-items" 201 "{
   \"menuId\": 1,
   \"name\": \"MS2 Unavailable Item ${RUN_SUFFIX}\",
@@ -102,6 +105,9 @@ request POST "/api/v1/loyalty-accounts" 201 "{
 LOYALTY_ACCOUNT_ID="$(json_value accountId)"
 pass "POST loyalty downstream through API Gateway created loyalty account ${LOYALTY_ACCOUNT_ID}"
 
+request GET "/api/v1/loyalty-accounts/${LOYALTY_ACCOUNT_ID}" 200
+pass "GET loyalty account by id through API Gateway"
+
 request GET "/api/v1/dining-tables" 200
 pass "GET reservation downstream through API Gateway"
 
@@ -116,6 +122,9 @@ request POST "/api/v1/dining-tables" 201 "{
 }"
 TABLE_ID="$(json_value tableId)"
 pass "POST reservation downstream through API Gateway created dining table ${TABLE_ID}"
+
+request GET "/api/v1/dining-tables/${TABLE_ID}" 200
+pass "GET dining table by id through API Gateway"
 
 request GET "/api/v1/reservations" 200
 pass "GET reservation aggregates through API Gateway"
