@@ -16,8 +16,9 @@ import com.example.restaurantreservation.exception.BusinessRuleViolationExceptio
 import com.example.restaurantreservation.exception.ResourceNotFoundException;
 import com.example.restaurantreservation.exception.TableAlreadyBookedException;
 import com.example.restaurantreservation.floor.businesslogiclayer.DiningTableServiceImpl;
+import com.example.restaurantreservation.floor.dataaccesslayer.DiningTableRepository;
+import com.example.restaurantreservation.floor.datamappinglayer.DiningTableMapper;
 import com.example.restaurantreservation.floor.domain.enums.TableStatus;
-import com.example.restaurantreservation.floor.presentationlayer.dto.DiningTableSummaryDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +38,8 @@ public class TableBookingServiceImpl implements TableBookingService {
     private final PreOrderRepository preOrderRepository;
     private final BookingMapper bookingMapper;
     private final DiningTableServiceImpl diningTableService;
+    private final DiningTableRepository diningTableRepository;
+    private final DiningTableMapper diningTableMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -182,12 +185,9 @@ public class TableBookingServiceImpl implements TableBookingService {
         if (tableId == null) {
             return;
         }
-        try {
-            DiningTableSummaryDTO tableSummary = diningTableService.getSummary(tableId);
-            dto.setTable(tableSummary);
-        } catch (Exception ignored) {
-            // Return the booking even if the linked table row is missing.
-        }
+        diningTableRepository.findById(tableId)
+                .map(diningTableMapper::toSummaryDTO)
+                .ifPresent(dto::setTable);
     }
 
     private void enrichWithPreOrderData(BookingResponseDTO dto, Long preOrderId) {
